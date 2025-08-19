@@ -48,6 +48,12 @@ NOTE: `GIT_LFS_SKIP_SMUDGE=1` is needed to pull LeRobot as a dependency.
 
 Once you have recorded your dataset, you can begin training using the command below. We provide a custom training configuration for the Trossen AI dataset. Since the Aloha Legacy and Trossen AI Stationary share the same joint layout, this configuration is compatible. Explicit support for Trossen AI will be added in the future.
 
+As of now we use 2 different versions of ``lerobot`` for training and evalaution. So, we need to adjust the dependencies accordingly.
+Run this command to use ``lerobot==0.1.0`` for training.
+
+```bash
+uv pip install ".[train_trossen_ai]"
+```
 
 ```bash
 XLA_PYTHON_CLIENT_MEM_FRACTION=0.9 uv run scripts/train.py pi0_trossen_transfer_block --exp-name=my_experiment --overwrite
@@ -121,7 +127,12 @@ After extraction, you can reference this checkpoint when starting the policy ser
 ## Running Inference with Your Trained Policy
 
 Once training is complete and your checkpoint is ready, you can start the policy server and run the client to perform autonomous tasks.
+As we use 2 different versions of ``lerobot`` for training and evaluation, we need to adjust the dependencies accordingly.
+Run this command before starting the evaluation to use ``lerobot==0.3.2``:
 
+```bash
+uv pip install ".[eval_trossen_ai]"
+```
 ### Start the Policy Server
 
 ```bash
@@ -139,7 +150,11 @@ uv run scripts/serve_policy.py policy:checkpoint \
     --policy.config=pi0_trossen_transfer_block \
     --policy.dir=checkpoints/pi0_trossen_transfer_block/test_pi0_finetuning/19999
 ```
-
+```bash
+uv run scripts/serve_policy.py policy:checkpoint \
+    --policy.config=pi0_trossen_transfer_block \
+    --policy.dir=checkpoints/pi0_trossen_transfer_block/block_transfer_training_100k/99999
+```
 This command serves the trained policy, making it available for inference.
 
 ### Start the Client

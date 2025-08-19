@@ -17,7 +17,6 @@ dependencies = [
     "imageio>=2.36.1",
     "jax[cuda12]==0.5.3",
     "jaxtyping==0.2.36",
-    "lerobot[trossen-ai]",
     "ml_collections==1.0.0",
     "numpy>=1.22.4,<2.0.0",
     "numpydantic>=1.6.6",
@@ -59,12 +58,22 @@ rlds = [
     "tensorflow-datasets==4.9.9",
 ]
 
+[project.optional-dependencies]
+train_trossen_ai = [
+    "lerobot @ git+https://github.com/huggingface/lerobot@0cf864870cf29f4738d3ade893e6fd13fbd7cdb5",
+]
+eval_trossen_ai = [
+    "lerobot @ git+https://github.com/Interbotix/lerobot@main-backup",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [tool.uv]
 override-dependencies = ["ml-dtypes==0.4.1", "tensorstore==0.1.74"]
 
 [tool.uv.sources]
 openpi-client = { workspace = true }
-lerobot = { git = "https://github.com/Interbotix/lerobot", rev = "main-backup" }
 dlimp = { git = "https://github.com/kvablack/dlimp", rev = "ad72ce3a9b414db2185bc0b38461d4101a65477a" }
 
 [tool.uv.workspace]
