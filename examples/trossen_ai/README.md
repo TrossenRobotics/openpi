@@ -49,21 +49,26 @@ NOTE: `GIT_LFS_SKIP_SMUDGE=1` is needed to pull LeRobot as a dependency.
 Once you have recorded your dataset, you can begin training using the command below. We provide a custom training configuration for the Trossen AI dataset. Since the Aloha Legacy and Trossen AI Stationary share the same joint layout, this configuration is compatible. Explicit support for Trossen AI will be added in the future.
 
 As of now we use 2 different versions of ``lerobot`` for training and evalaution. So, we need to adjust the dependencies accordingly.
-Run this command to use ``lerobot==0.1.0`` for training.
+Run this command to use ``lerobot==0.1.0`` for training. To have a clean dependency environment, it's recommended to use a virtual environment.
+
+```bash
+python -m venv .venv_train
+source .venv_train/bin/activate
+```
 
 ```bash
 uv pip install ".[train_trossen_ai]"
 ```
 
 ```bash
-XLA_PYTHON_CLIENT_MEM_FRACTION=0.9 uv run scripts/train.py pi0_trossen_transfer_block --exp-name=my_experiment --overwrite
+XLA_PYTHON_CLIENT_MEM_FRACTION=0.9 python scripts/train.py pi0_trossen_transfer_block --exp-name=my_experiment --overwrite
 ```
 ## Custom Training Configuration
 
 To add a custom training configuration, edit the `openpi/src/training/config.py` file. You can define your own `TrainConfig` with specific model parameters, dataset sources, prompts, and training options. After updating the configuration, reference your new config name in the training command:
 
 ```bash
-XLA_PYTHON_CLIENT_MEM_FRACTION=0.9 uv run scripts/train.py <your_custom_config_name> --exp-name=my_experiment --overwrite
+XLA_PYTHON_CLIENT_MEM_FRACTION=0.9 python scripts/train.py <your_custom_config_name> --exp-name=my_experiment --overwrite
 ```
 
 This allows you to tailor the training process to your dataset and requirements.
@@ -130,13 +135,16 @@ Once training is complete and your checkpoint is ready, you can start the policy
 As we use 2 different versions of ``lerobot`` for training and evaluation, we need to adjust the dependencies accordingly.
 Run this command before starting the evaluation to use ``lerobot==0.3.2``:
 
+We will use the venv_train virtual environment for running the policy server
+
 ```bash
-uv pip install ".[eval_trossen_ai]"
+source .venv_train/bin/activate
 ```
+
 ### Start the Policy Server
 
 ```bash
-uv run scripts/serve_policy.py policy:checkpoint \
+python scripts/serve_policy.py policy:checkpoint \
     --policy.config=pi0_trossen_transfer_block \
     --policy.dir=checkpoints/pi0_trossen_transfer_block/test_pi0_finetuning/19999
 ```
@@ -146,12 +154,12 @@ This command serves the trained policy, making it available for inference.
 Launch the policy server using your trained checkpoint and configuration:
 
 ```bash
-uv run scripts/serve_policy.py policy:checkpoint \
+python scripts/serve_policy.py policy:checkpoint \
     --policy.config=pi0_trossen_transfer_block \
     --policy.dir=checkpoints/pi0_trossen_transfer_block/test_pi0_finetuning/19999
 ```
 ```bash
-uv run scripts/serve_policy.py policy:checkpoint \
+python scripts/serve_policy.py policy:checkpoint \
     --policy.config=pi0_trossen_transfer_block \
     --policy.dir=checkpoints/pi0_trossen_transfer_block/block_transfer_training_100k/99999
 ```
@@ -160,11 +168,82 @@ This command serves the trained policy, making it available for inference.
 ### Start the Client
 
 Run the client to interact with the policy server and execute tasks autonomously. Specify the desired task prompt:
+We will use a new virtual environment for running the client. This is required as the client uses a different version of lerobot (0.3.2) than the training environment.
 
 ```bash
-uv run examples/trossen_ai/main.py --mode autonomous --task_prompt "grab red cube"
+uv venv .venv_eval
+source .venv_eval/bin/activate
+uv pip install -e ".[eval_trossen_ai]"
+```
+
+```bash
+python examples/trossen_ai/main.py --mode autonomous --task_prompt "grab red cube"
 ```
 
 The client will connect to the policy server and perform the specified task using the trained model.
 
 
+You can change the cameras and arm ip address in the script by editing
+
+```python
+bi_widowx_ai_config = BiWidowXAIFollowerConfig(
+            left_arm_ip_address="192.168.1.5",
+            right_arm_ip_address="192.168.1.4",
+            min_time_to_move_multiplier=4.0,
+            id="bimanual_follower",
+            cameras={
+                "top": RealSenseCameraConfig(
+                    serial_number_or_name="218622270304",
+                    width=640, height=480, fps=30, use_depth=False
+                ),
+                "bottom": RealSenseCameraConfig(
+                    serial_number_or_name="130322272628",
+                    width=640, height=480, fps=30, use_depth=False
+                ),
+                "right": RealSenseCameraConfig(
+                    serial_number_or_name="128422271347",
+                    width=640, height=480, fps=30, use_depth=False
+                ),
+                "left": RealSenseCameraConfig(
+                    serial_number_or_name="218622274938",
+                    width=640, height=480, fps=30, use_depth=False
+                ),
+            }
+        )
+```
+
+
+You can also change the inference rate by modifying the `rate_of_inference` attribute. The policy will be queried for new actions every `rate_of_inference` control steps. The value 50 is in accordance with the paper for Pi-0.
+
+```python
+self.rate_of_inference = 50  # Number of control steps per policy inference
+```
+
+We have also implemented logic for temporal ensembling, which can be controlled via the `m` attribute. Setting `m` to a value between 0 and 1 enables exponential moving average of the action predictions, potentially smoothing out the control commands.
+
+```python
+self.m = None  # Temporal ensembling weight (can be set to None for no ensembling)
+```
+The paper, however, suggests not to use temporal ensembling for the Pi-0 policy. So, by default this value will be None.
+
+## Results
+
+Here are some preliminary results from our experiments with the Pi-0 policy on the bimanual WidowX setup.
+Note that the Pi-0 base checkpoint has no episodes collected using Trossen-AI arms, so fine tuning is absolutely necessary for optimal performance. We collected a small dataset of 50 episodes for this purpose (whihc is very small in comparison to other robot modalities) zero shot inference using this checkpoint might be difficult as any changes in the environmnart, color of the blocks, shape of the objects can affect the performance.
+The dataset collected was in an extrememly controlled enviromnet with pick and plcaing the a red color block from same position and dropping it in the same position, this reduces the variablity and helps us verify the training and evalaution pipeline. 
+
+Check the results out here:
+[Google Drive Folder](https://drive.google.com/drive/folders/1waFcKihP8uAHSsV8VM-S7eBLDdTW7jfw?usp=sharing)
+
+1. ``openpi_trossen_ai_red_block[success]`` : The robot is able to pickup and transfer the red block successfully in the second try.
+2. ``openpi_trossen_ai_blue_lego[fail]`` : The robot fails to pick up the blue Lego block, likely due to differences in block size and color affecting the model's performance.
+3. ``openpi_trossen_ai_environment_disturbances[fail]`` : The robot struggles to complete the task when the environment is disturbed, indicating sensitivity to changes in the setup.
+4. ``openpi_trossen_ai_wooden_block[fail]`` : The robot fails to pick up the wooden block, suggesting that the model may not generalize well to different object types without further training.
+
+We run this exact same command for testing each of these scenarios. The command is:
+
+```bash
+python examples/trossen_ai/main.py --mode autonomous --task_prompt "grab red cube"
+```
+
+The task prompt remains the same for all tests, as we haven't collected any data for other object types or scenarios.

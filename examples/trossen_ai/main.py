@@ -82,9 +82,9 @@ class TrossenOpenPIBridge:
         self.action_chunk_idx = 0
         self.episode_step = 0
         self.is_running = False
-        self.rate_of_inference = 25  # Number of control steps per policy inference
+        self.rate_of_inference = 50  # Number of control steps per policy inference
 
-        self.m=0.1
+        self.m = None  # Temporal ensembling weight (can be set to None for no ensembling)
 
         # FIFO Buffer for actions
         self.buffer = defaultdict(list)

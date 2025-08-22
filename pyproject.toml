@@ -63,7 +63,7 @@ train_trossen_ai = [
     "lerobot @ git+https://github.com/huggingface/lerobot@0cf864870cf29f4738d3ade893e6fd13fbd7cdb5",
 ]
 eval_trossen_ai = [
-    "lerobot @ git+https://github.com/Interbotix/lerobot@main-backup",
+    "lerobot[trossen-ai]@ git+https://github.com/Interbotix/lerobot@main-backup",
 ]
 
 [tool.hatch.metadata]
