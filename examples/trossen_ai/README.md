@@ -48,27 +48,22 @@ NOTE: `GIT_LFS_SKIP_SMUDGE=1` is needed to pull LeRobot as a dependency.
 
 Once you have recorded your dataset, you can begin training using the command below. We provide a custom training configuration for the Trossen AI dataset. Since the Aloha Legacy and Trossen AI Stationary share the same joint layout, this configuration is compatible. Explicit support for Trossen AI will be added in the future.
 
-As of now we use 2 different versions of ``lerobot`` for training and evalaution. So, we need to adjust the dependencies accordingly.
-Run this command to use ``lerobot==0.1.0`` for training. To have a clean dependency environment, it's recommended to use a virtual environment.
+Run this command from the project root. This is for dependency management. We have to use LeRobot V0.1.0.
 
 ```bash
-python -m venv .venv_train
-source .venv_train/bin/activate
+cd openpi
 ```
 
-```bash
-uv pip install ".[train_trossen_ai]"
-```
 
 ```bash
-XLA_PYTHON_CLIENT_MEM_FRACTION=0.9 python scripts/train.py pi0_trossen_transfer_block --exp-name=my_experiment --overwrite
+XLA_PYTHON_CLIENT_MEM_FRACTION=0.9 uv run scripts/train.py pi0_trossen_transfer_block --exp-name=my_experiment --overwrite
 ```
 ## Custom Training Configuration
 
 To add a custom training configuration, edit the `openpi/src/training/config.py` file. You can define your own `TrainConfig` with specific model parameters, dataset sources, prompts, and training options. After updating the configuration, reference your new config name in the training command:
 
 ```bash
-XLA_PYTHON_CLIENT_MEM_FRACTION=0.9 python scripts/train.py <your_custom_config_name> --exp-name=my_experiment --overwrite
+XLA_PYTHON_CLIENT_MEM_FRACTION=0.9 uv run scripts/train.py <your_custom_config_name> --exp-name=my_experiment --overwrite
 ```
 
 This allows you to tailor the training process to your dataset and requirements.
@@ -132,34 +127,23 @@ After extraction, you can reference this checkpoint when starting the policy ser
 ## Running Inference with Your Trained Policy
 
 Once training is complete and your checkpoint is ready, you can start the policy server and run the client to perform autonomous tasks.
-As we use 2 different versions of ``lerobot`` for training and evaluation, we need to adjust the dependencies accordingly.
-Run this command before starting the evaluation to use ``lerobot==0.3.2``:
-
-We will use the venv_train virtual environment for running the policy server
-
-```bash
-source .venv_train/bin/activate
-```
 
 ### Start the Policy Server
 
-```bash
-python scripts/serve_policy.py policy:checkpoint \
-    --policy.config=pi0_trossen_transfer_block \
-    --policy.dir=checkpoints/pi0_trossen_transfer_block/test_pi0_finetuning/19999
-```
 
 This command serves the trained policy, making it available for inference.
 
 Launch the policy server using your trained checkpoint and configuration:
 
+Make sure to run this from project root. This allows us to use LeRobot V0.1.0
 ```bash
-python scripts/serve_policy.py policy:checkpoint \
+uv run scripts/serve_policy.py policy:checkpoint \
     --policy.config=pi0_trossen_transfer_block \
     --policy.dir=checkpoints/pi0_trossen_transfer_block/test_pi0_finetuning/19999
 ```
+
 ```bash
-python scripts/serve_policy.py policy:checkpoint \
+uv run scripts/serve_policy.py policy:checkpoint \
     --policy.config=pi0_trossen_transfer_block \
     --policy.dir=checkpoints/pi0_trossen_transfer_block/block_transfer_training_100k/99999
 ```
@@ -168,16 +152,12 @@ This command serves the trained policy, making it available for inference.
 ### Start the Client
 
 Run the client to interact with the policy server and execute tasks autonomously. Specify the desired task prompt:
-We will use a new virtual environment for running the client. This is required as the client uses a different version of lerobot (0.3.2) than the training environment.
+We will use a the `examples/trossen_ai` as root directory for running the client. This is required as the client uses a different version of lerobot (0.3.2) than the training environment.
+
 
 ```bash
-uv venv .venv_eval
-source .venv_eval/bin/activate
-uv pip install -e ".[eval_trossen_ai]"
-```
-
-```bash
-python examples/trossen_ai/main.py --mode autonomous --task_prompt "grab red cube"
+cd examples/trossen_ai
+uv run examples/trossen_ai/main.py --mode autonomous --task_prompt "grab red cube"
 ```
 
 The client will connect to the policy server and perform the specified task using the trained model.
@@ -243,7 +223,7 @@ Check the results out here:
 We run this exact same command for testing each of these scenarios. The command is:
 
 ```bash
-python examples/trossen_ai/main.py --mode autonomous --task_prompt "grab red cube"
+uv run examples/trossen_ai/main.py --mode autonomous --task_prompt "grab red cube"
 ```
 
 The task prompt remains the same for all tests, as we haven't collected any data for other object types or scenarios.
