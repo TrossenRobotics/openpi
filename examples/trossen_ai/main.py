@@ -25,6 +25,7 @@ from lerobot.robots import make_robot_from_config
 from lerobot.robots.bi_widowxai_follower.config_bi_widowxai_follower import BiWidowXAIFollowerConfig
 from lerobot.cameras.realsense.configuration_realsense import RealSenseCameraConfig
 from collections import defaultdict
+from scipy.interpolate import PchipInterpolator
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lerobot'))
 
@@ -78,20 +79,6 @@ class TrossenOpenPIBridge:
         self.robot = make_robot_from_config(bi_widowx_ai_config)
         self.robot.connect()
 
-        # Interpolate to stage position using current joint poses
-        joint_pos_keys = [k for k in self.robot.get_observation().keys() if k.endswith('.pos')]
-        current_pose = np.array([self.robot.get_observation()[k] for k in joint_pos_keys])
-        stage_pose = np.array([0, np.pi/3, np.pi/6, np.pi/5, 0, 0, 0, 0, 0 , 0, 0, 0, 0, 0])
-        steps = 15
-        logger.info("Moving to stage position...")
-        for s in range(steps):
-            logger.info(f"Step {s+1}/{steps}")
-            alpha = (s + 1) / steps
-            interp_pose = (1 - alpha) * current_pose + alpha * stage_pose
-            self.execute_action(interp_pose)
-            time.sleep(0.1)
-
-
         self.current_action_chunk = None
         self.action_chunk_idx = 0
         self.episode_step = 0
@@ -142,6 +129,30 @@ class TrossenOpenPIBridge:
                 action_dict[f"right_joint_{i}.pos"] = right_arm_action[i]
         self.robot.send_action(action_dict)
 
+    def move_to_start_position(self, goal_position: np.ndarray, duration: float = 5.0):
+
+        """The first position queried from the policy depends on the training data.
+        Assuming the first position is a "stage" position will result in a large jump if the arm is not already there.
+        To avoid this, we smoothly move the arm to a first action/position before sending the rest of the actions.
+        We use PCHIP interpolation for smooth trajectory generation and give it enough time to reach the position to prevent 
+        jumps and triggering safety stops (velocity limits)."""
+
+        joint_pos_keys = [k for k in self.robot.get_observation().keys() if k.endswith('.pos')]
+        current_pose = np.array([self.robot.get_observation()[k] for k in joint_pos_keys])
+        # stage_pose = np.array([0, np.pi/3, np.pi/6, np.pi/5, 0, 0, 0, 0, 0 , 0, 0, 0, 0, 0])
+        waypoints = np.array([current_pose, goal_position])
+        timepoints = np.array([0, duration])  # Use the provided duration
+        interpolator_position = PchipInterpolator(timepoints, waypoints, axis=0)
+
+        start_time = time.time()
+        end_time = start_time + timepoints[-1]
+
+        while time.time() < end_time:
+            loop_start_time = time.time()
+            current_time = loop_start_time - start_time
+            positions = interpolator_position(current_time)
+            self.execute_action(positions)
+
     def run_episode(self, max_steps: int = 1000, task_prompt: str = "look down"):
         """Run a single episode of policy execution."""
         logger.info(f"Starting episode with prompt: '{task_prompt}'")
@@ -150,6 +161,7 @@ class TrossenOpenPIBridge:
         self.action_chunk_idx = 0
         self.current_action_chunk = None
         self.is_running = True
+        is_first_step = True
 
         while self.is_running and self.episode_step < max_steps:
             start_loop_time = time.perf_counter()
@@ -204,7 +216,12 @@ class TrossenOpenPIBridge:
             else:
                 a_t = self.current_action_chunk[self.action_chunk_idx]
             # Execute the current action
-            self.execute_action(a_t)
+            if is_first_step:
+                logger.info("Moving to start position to avoid large jumps...")
+                self.move_to_start_position(a_t, duration=5.0)
+                is_first_step = False
+            else:
+                self.execute_action(a_t)
 
             self.action_chunk_idx += 1
             self.episode_step += 1

@@ -11,6 +11,7 @@ dependencies = [
     "opencv-python>=4.10.0.84",
     "openpi-client",
     "lerobot[trossen_ai]",
+    "scipy>=1.10.1",
 ]
 
 [tool.hatch.metadata]
