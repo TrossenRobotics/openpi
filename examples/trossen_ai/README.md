@@ -29,7 +29,7 @@ Follow the [UV installation instructions](https://docs.astral.sh/uv/getting-star
 When cloning this repo, make sure to update submodules:
 
 ```bash
-git clone --recurse-submodules git@github.com:Physical-Intelligence/openpi.git
+git clone --recurse-submodules git@github.com:TrossenRobotics/openpi.git
 
 # Or if you already cloned the repo:
 git submodule update --init --recursive
@@ -151,13 +151,23 @@ This command serves the trained policy, making it available for inference.
 
 ### Start the Client
 
+
+Before starting the client we need to built the `LeRobot V0.3.2` package it needs.
+
+```bash
+cd examples/trossen_ai
+GIT_LFS_SKIP_SMUDGE=1 uv sync
+GIT_LFS_SKIP_SMUDGE=1 uv pip install -e .
+```
+
+
 Run the client to interact with the policy server and execute tasks autonomously. Specify the desired task prompt:
 We will use a the `examples/trossen_ai` as root directory for running the client. This is required as the client uses a different version of lerobot (0.3.2) than the training environment.
 
 
 ```bash
 cd examples/trossen_ai
-uv run examples/trossen_ai/main.py --mode autonomous --task_prompt "grab red cube"
+uv run main.py --mode autonomous --task_prompt "grab red cube"
 ```
 
 The client will connect to the policy server and perform the specified task using the trained model.

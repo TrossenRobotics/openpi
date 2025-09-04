@@ -52,25 +52,25 @@ class TrossenOpenPIBridge:
         )
 
         bi_widowx_ai_config = BiWidowXAIFollowerConfig(
-            left_arm_ip_address="192.168.1.5",
-            right_arm_ip_address="192.168.1.4",
+            left_arm_ip_address="192.168.1.121",
+            right_arm_ip_address="192.168.1.111",
             min_time_to_move_multiplier=4.0,
             id="bimanual_follower",
             cameras={
                 "top": RealSenseCameraConfig(
-                    serial_number_or_name="218622270304",
+                    serial_number_or_name="218622271179",
                     width=640, height=480, fps=30, use_depth=False
                 ),
                 "bottom": RealSenseCameraConfig(
-                    serial_number_or_name="130322272628",
+                    serial_number_or_name="218622271198",
                     width=640, height=480, fps=30, use_depth=False
                 ),
                 "right": RealSenseCameraConfig(
-                    serial_number_or_name="128422271347",
+                    serial_number_or_name="218622278132",
                     width=640, height=480, fps=30, use_depth=False
                 ),
                 "left": RealSenseCameraConfig(
-                    serial_number_or_name="218622274938",
+                    serial_number_or_name="218622276227",
                     width=640, height=480, fps=30, use_depth=False
                 ),
             }
@@ -78,13 +78,27 @@ class TrossenOpenPIBridge:
         self.robot = make_robot_from_config(bi_widowx_ai_config)
         self.robot.connect()
 
+        # Interpolate to stage position using current joint poses
+        joint_pos_keys = [k for k in self.robot.get_observation().keys() if k.endswith('.pos')]
+        current_pose = np.array([self.robot.get_observation()[k] for k in joint_pos_keys])
+        stage_pose = np.array([0, np.pi/3, np.pi/6, np.pi/5, 0, 0, 0, 0, 0 , 0, 0, 0, 0, 0])
+        steps = 15
+        logger.info("Moving to stage position...")
+        for s in range(steps):
+            logger.info(f"Step {s+1}/{steps}")
+            alpha = (s + 1) / steps
+            interp_pose = (1 - alpha) * current_pose + alpha * stage_pose
+            self.execute_action(interp_pose)
+            time.sleep(0.1)
+
+
         self.current_action_chunk = None
         self.action_chunk_idx = 0
         self.episode_step = 0
         self.is_running = False
-        self.rate_of_inference = 50  # Number of control steps per policy inference
+        self.rate_of_inference = 25  # Number of control steps per policy inference
 
-        self.m = None  # Temporal ensembling weight (can be set to None for no ensembling)
+        self.m = 0.01  # Temporal ensembling weight (can be set to None for no ensembling)
 
         # FIFO Buffer for actions
         self.buffer = defaultdict(list)
@@ -131,7 +145,7 @@ class TrossenOpenPIBridge:
     def run_episode(self, max_steps: int = 1000, task_prompt: str = "look down"):
         """Run a single episode of policy execution."""
         logger.info(f"Starting episode with prompt: '{task_prompt}'")
-        self.robot.configure()
+        # self.robot.configure()
         self.episode_step = 0
         self.action_chunk_idx = 0
         self.current_action_chunk = None
@@ -246,7 +260,7 @@ if __name__ == "__main__":
     )
 
     if args.mode == "autonomous":
-        bridge.autonomous_mode(max_steps=1000, task_prompt=args.task_prompt)
+        bridge.autonomous_mode(max_steps=4000, task_prompt=args.task_prompt)
     else:
         logger.info("TEST MODE: Will connect to robot, move to home position, and read real data but NOT execute policy actions!")
         # If you want to implement test_real_robot_mode, add the method here.
