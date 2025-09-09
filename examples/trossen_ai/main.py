@@ -53,25 +53,25 @@ class TrossenOpenPIBridge:
         )
 
         bi_widowx_ai_config = BiWidowXAIFollowerConfig(
-            left_arm_ip_address="192.168.1.121",
-            right_arm_ip_address="192.168.1.111",
+            left_arm_ip_address="192.168.1.5",
+            right_arm_ip_address="192.168.1.4",
             min_time_to_move_multiplier=4.0,
             id="bimanual_follower",
             cameras={
                 "top": RealSenseCameraConfig(
-                    serial_number_or_name="218622271179",
+                    serial_number_or_name="218622270304",
                     width=640, height=480, fps=30, use_depth=False
                 ),
                 "bottom": RealSenseCameraConfig(
-                    serial_number_or_name="218622271198",
+                    serial_number_or_name="130322272628",
                     width=640, height=480, fps=30, use_depth=False
                 ),
                 "right": RealSenseCameraConfig(
-                    serial_number_or_name="218622278132",
+                    serial_number_or_name="128422271347",
                     width=640, height=480, fps=30, use_depth=False
                 ),
                 "left": RealSenseCameraConfig(
-                    serial_number_or_name="218622276227",
+                    serial_number_or_name="218622274938",
                     width=640, height=480, fps=30, use_depth=False
                 ),
             }
