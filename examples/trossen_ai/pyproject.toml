@@ -20,7 +20,7 @@ allow-direct-references = true
 
 [tool.uv.sources]
 openpi-client = { path = "../../packages/openpi-client" }
-lerobot = { git = "https://github.com/Interbotix/lerobot", branch = "main-backup" }
+lerobot = { git = "https://github.com/Interbotix/lerobot", branch = "open_pi_support" }
 dlimp = { git = "https://github.com/kvablack/dlimp", rev = "ad72ce3a9b414db2185bc0b38461d4101a65477a" }
 
 [tool.uv.workspace]

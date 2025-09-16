@@ -33,7 +33,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 class TrossenOpenPIBridge:
-    """Bridge between a single Trossen arm and OpenPI policy server."""
+    """Bridge between a Trossen AI Stationary Kit and OpenPI policy server."""
 
     def __init__(
         self,
@@ -41,8 +41,10 @@ class TrossenOpenPIBridge:
         policy_server_port: int = 8000,
         control_frequency: int = 30,
         test_mode: bool = False,
+        max_steps: int = 1000
     ):
         self.control_frequency = control_frequency
+        self.max_steps = max_steps
         self.dt = 1.0 / control_frequency
         self.test_mode = test_mode
 
@@ -58,19 +60,19 @@ class TrossenOpenPIBridge:
             min_time_to_move_multiplier=4.0,
             id="bimanual_follower",
             cameras={
-                "top": RealSenseCameraConfig(
+                "cam_high": RealSenseCameraConfig(
                     serial_number_or_name="218622270304",
                     width=640, height=480, fps=30, use_depth=False
                 ),
-                "bottom": RealSenseCameraConfig(
+                "cam_low": RealSenseCameraConfig(
                     serial_number_or_name="130322272628",
                     width=640, height=480, fps=30, use_depth=False
                 ),
-                "right": RealSenseCameraConfig(
+                "cam_right_wrist": RealSenseCameraConfig(
                     serial_number_or_name="128422271347",
                     width=640, height=480, fps=30, use_depth=False
                 ),
-                "left": RealSenseCameraConfig(
+                "cam_left_wrist": RealSenseCameraConfig(
                     serial_number_or_name="218622274938",
                     width=640, height=480, fps=30, use_depth=False
                 ),
@@ -81,37 +83,42 @@ class TrossenOpenPIBridge:
 
         self.current_action_chunk = None
         self.action_chunk_idx = 0
+        self.action_chunk_size = 50  # Number of actions per chunk from the policy (Defined by the policy server in this case 50)
         self.episode_step = 0
         self.is_running = False
         self.rate_of_inference = 25  # Number of control steps per policy inference
 
-        self.m = 0.01  # Temporal ensembling weight (can be set to None for no ensembling)
+        self.temporal_ensemble_coefficient = None  # Temporal ensembling weight (can be set to None for no ensembling)
 
         # FIFO Buffer for actions
-        self.buffer = defaultdict(list)
-        self.action_buffer_size = 30 * 60  # Predefined buffer size (Depends on max episode length)
+        self.action_buffer = defaultdict(list)
+        self.action_buffer_size = self.max_steps + self.action_chunk_size  # Buffer size to hold actions for the entire episode
+
+        self.action_dim = 14  # 7 joints per arm * 2 arms
+
+        self.joint_limits = np.array([
+            [-np.pi, np.pi],           # left_joint_0.pos
+            [0, np.pi / 2],  # left_joint_1.pos
+            [0, 3*np.pi/4],  # left_joint_2.pos
+            [-np.pi/2, np.pi/2],           # left_joint_3.pos
+            [-np.pi/2, np.pi/2],  # left_joint_4.pos
+            [-np.pi, np.pi],           # left_joint_5.pos
+            [0.0, 0.04],               # left_left_carriage_joint.pos
+            [-np.pi, np.pi],           # right_joint_0.pos
+            [0, np.pi / 2],  # right_joint_1.pos
+            [0, 3*np.pi / 4],  # right_joint_2.pos
+            [-np.pi/2, np.pi/2],           # right_joint_3.pos
+            [-np.pi/2, np.pi/2],  # right_joint_4.pos
+            [-np.pi, np.pi],           # right_joint_5.pos
+            [0.0, 0.04],               # right_left_carriage_joint.pos
+        ])
 
     def execute_action(self, action: np.ndarray):
         """Execute action on the arm."""
         full_action = action.copy()
-        joint_limits = np.array([
-            [-np.pi, np.pi],           # left_joint_0.pos
-            [-np.pi / 2, np.pi / 2],  # left_joint_1.pos
-            [-np.pi / 2, np.pi / 2],  # left_joint_2.pos
-            [-np.pi, np.pi],           # left_joint_3.pos
-            [-np.pi / 2, np.pi / 2],  # left_joint_4.pos
-            [-np.pi, np.pi],           # left_joint_5.pos
-            [0.0, 0.04],               # left_left_carriage_joint.pos
-            [-np.pi, np.pi],           # right_joint_0.pos
-            [-np.pi / 2, np.pi / 2],  # right_joint_1.pos
-            [-np.pi / 2, np.pi / 2],  # right_joint_2.pos
-            [-np.pi, np.pi],           # right_joint_3.pos
-            [-np.pi / 2, np.pi / 2],  # right_joint_4.pos
-            [-np.pi, np.pi],           # right_joint_5.pos
-            [0.0, 0.04],               # right_left_carriage_joint.pos
-        ])
+        
         for i in range(len(full_action)):
-            full_action[i] = np.clip(full_action[i], joint_limits[i][0], joint_limits[i][1])
+            full_action[i] = np.clip(full_action[i], self.joint_limits[i][0], self.joint_limits[i][1])
 
         if self.test_mode:
             logger.info(f"TEST MODE: Would execute action: {full_action}")
@@ -163,7 +170,7 @@ class TrossenOpenPIBridge:
         self.is_running = True
         is_first_step = True
 
-        while self.is_running and self.episode_step < max_steps:
+        while self.is_running and self.episode_step < self.max_steps:
             start_loop_time = time.perf_counter()
             observation_dict = self.robot.get_observation()
 
@@ -173,7 +180,7 @@ class TrossenOpenPIBridge:
 
 
             # Transform and resize images from all cameras
-            cameras = ['top', 'bottom', 'right', 'left']
+            cameras = ['cam_high', 'cam_low', 'cam_right_wrist', 'cam_left_wrist']
             for cam in cameras:
                 image_hwc = observation_dict[cam]
                 image_resized = cv2.resize(image_hwc, (224, 224))
@@ -184,15 +191,15 @@ class TrossenOpenPIBridge:
             observation = {
                 "state": joint_positions,
                 "images": {
-                    "cam_high": observation_dict['top'],
-                    "cam_low": observation_dict['bottom'],
-                    "cam_right_wrist": observation_dict['right'],
-                    "cam_left_wrist": observation_dict['left'],
+                    "cam_high": observation_dict['cam_high'],
+                    "cam_low": observation_dict['cam_low'],
+                    "cam_right_wrist": observation_dict['cam_right_wrist'],
+                    "cam_left_wrist": observation_dict['cam_left_wrist'],
                 },
                 "prompt": task_prompt
             }
 
-            # Request new action chunk after consuming the previous one (Can implement temporal ensembling here)
+            # Request new action chunk after consuming the previous one
             if self.current_action_chunk is None or self.action_chunk_idx >= self.rate_of_inference:
                 logger.info(f"Step {self.episode_step}: Requesting new action chunk")
                 response = self.policy_client.infer(observation)
@@ -200,17 +207,18 @@ class TrossenOpenPIBridge:
 
                 for k in range(50):
                     future_t = self.episode_step + k
-                    if future_t < 30*60:
-                        self.buffer[future_t].append(self.current_action_chunk[k])
+                    if future_t < self.action_buffer_size:
+                        self.action_buffer[future_t].append(self.current_action_chunk[k])
 
                 self.action_chunk_idx = 0
                 logger.info(f"Received action chunk: {self.current_action_chunk.shape}")
 
-            if self.m is not None:
-                if len(self.buffer[self.episode_step]) == 0:
+            # Select action using temporal ensembling if enabled
+            if self.temporal_ensemble_coefficient is not None:
+                if len(self.action_buffer[self.episode_step]) == 0:
                     a_t = np.zeros(self.action_dim)
                 else:
-                    candidates = np.array(self.buffer[self.episode_step])  # shape: (N, 14)
+                    candidates = np.array(self.action_buffer[self.episode_step])  # shape: (N, 14)
                     weights = self._get_weights(len(candidates))  # shape: (N,)
                     a_t = np.average(candidates, axis=0, weights=weights)  # shape: (14,)
             else:
@@ -240,18 +248,18 @@ class TrossenOpenPIBridge:
         logger.info(f"Episode completed after {self.episode_step} steps")
 
     def _get_weights(self, num_preds: int) -> np.ndarray:
-        weights = np.exp(-self.m * np.arange(num_preds))
+        weights = np.exp(-self.temporal_ensemble_coefficient * np.arange(num_preds))
         return weights / weights.sum()
 
 
-    def autonomous_mode(self, max_steps: int = 1000, task_prompt: str = "look down"):
+    def autonomous_mode(self, task_prompt: str = "look down"):
         """Run in autonomous mode where the arm executes policy predictions."""
         logger.info("Starting autonomous mode")
         if self.test_mode:
             logger.info("TEST MODE: Simulating autonomous mode without robot movement")
         else:
             logger.info("The arm will execute actions predicted by the Pi0 model.")
-        self.run_episode(max_steps=max_steps, task_prompt=task_prompt)
+        self.run_episode(task_prompt=task_prompt)
 
     def cleanup(self):
         """Clean up resources."""
@@ -259,7 +267,7 @@ class TrossenOpenPIBridge:
         self.robot.disconnect()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Trossen Single Arm <-> OpenPI Policy Server Bridge")
+    parser = argparse.ArgumentParser(description="Trossen AI Stationary Kit <-> OpenPI Policy Server Bridge")
     parser.add_argument("--policy_host", default="localhost", help="Policy server host")
     parser.add_argument("--policy_port", type=int, default=8000, help="Policy server port")
     parser.add_argument("--control_freq", type=int, default=30, help="Control frequency in Hz")
@@ -274,10 +282,11 @@ if __name__ == "__main__":
         policy_server_port=args.policy_port,
         control_frequency=args.control_freq,
         test_mode=args.mode == "test_real_robot",
+        max_steps=args.max_steps
     )
 
     if args.mode == "autonomous":
-        bridge.autonomous_mode(max_steps=4000, task_prompt=args.task_prompt)
+        bridge.autonomous_mode(task_prompt=args.task_prompt)
     else:
         logger.info("TEST MODE: Will connect to robot, move to home position, and read real data but NOT execute policy actions!")
         # If you want to implement test_real_robot_mode, add the method here.
