@@ -219,8 +219,8 @@ The paper, however, suggests not to use temporal ensembling for the Pi-0 policy.
 ## Results
 
 Here are some preliminary results from our experiments with the Pi-0 policy on the bimanual WidowX setup.
-Note that the Pi-0 base checkpoint has no episodes collected using Trossen-AI arms, so fine tuning is absolutely necessary for optimal performance. We collected a small dataset of 50 episodes for this purpose (whihc is very small in comparison to other robot modalities) zero shot inference using this checkpoint might be difficult as any changes in the environmnart, color of the blocks, shape of the objects can affect the performance.
-The dataset collected was in an extrememly controlled enviromnet with pick and plcaing the a red color block from same position and dropping it in the same position, this reduces the variablity and helps us verify the training and evalaution pipeline. 
+Note that the Pi-0 base checkpoint has no episodes collected using Trossen-AI arms, so fine tuning is absolutely necessary for optimal performance. We collected a small dataset of 50 episodes for this purpose (which is very small in comparison to other robot modalities) zero shot inference using this checkpoint might be difficult as any changes in the environment, color of the blocks, shape of the objects can affect the performance.
+The dataset collected was in an extremely controlled environment with pick and placing the a red color block from same position and dropping it in the same position, this reduces the variability and helps us verify the training and evaluation pipeline. 
 
 Check the results out here:
 [Google Drive Folder](https://drive.google.com/drive/folders/1waFcKihP8uAHSsV8VM-S7eBLDdTW7jfw?usp=sharing)

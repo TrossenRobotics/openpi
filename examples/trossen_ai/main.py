@@ -146,7 +146,12 @@ class TrossenOpenPIBridge:
 
         joint_pos_keys = [k for k in self.robot.get_observation().keys() if k.endswith('.pos')]
         current_pose = np.array([self.robot.get_observation()[k] for k in joint_pos_keys])
-        # stage_pose = np.array([0, np.pi/3, np.pi/6, np.pi/5, 0, 0, 0, 0, 0 , 0, 0, 0, 0, 0])
+        # Example stage_pose for bimanual WidowX arms.
+        # Each value corresponds to a joint position (in radians) for the 14 joints:
+        # [left_joint_0, left_joint_1, left_joint_2, left_joint_3, left_joint_4, left_joint_5, left_left_carriage_joint,
+        #  right_joint_0, right_joint_1, right_joint_2, right_joint_3, right_joint_4, right_joint_5, right_left_carriage_joint]
+        # The values below represent a "stage" pose, e.g. arms up and open, ready for task start.
+        # stage_pose = np.array([0, np.pi/3, np.pi/6, np.pi/5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
         waypoints = np.array([current_pose, goal_position])
         timepoints = np.array([0, duration])  # Use the provided duration
         interpolator_position = PchipInterpolator(timepoints, waypoints, axis=0)
@@ -163,7 +168,6 @@ class TrossenOpenPIBridge:
     def run_episode(self, max_steps: int = 1000, task_prompt: str = "look down"):
         """Run a single episode of policy execution."""
         logger.info(f"Starting episode with prompt: '{task_prompt}'")
-        # self.robot.configure()
         self.episode_step = 0
         self.action_chunk_idx = 0
         self.current_action_chunk = None
