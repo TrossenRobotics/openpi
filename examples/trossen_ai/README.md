@@ -237,3 +237,10 @@ uv run main.py --mode autonomous --task_prompt "grab red cube"
 ```
 
 The task prompt remains the same for all tests, as we haven't collected any data for other object types or scenarios.
+
+
+If you want to run the client in test mode (no movement, just logs the actions that would be taken), you can use the following command:
+
+```bash
+uv run main.py --mode test --task_prompt "grab red cube"
+```

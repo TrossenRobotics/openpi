@@ -11,6 +11,9 @@ Handles:
 
 Usage:
     python main.py --mode autonomous --task_prompt "grab and handover red cube"
+
+    Test mode (no movement):
+    python main.py --mode test --task_prompt "grab and handover red cube"
 """
 
 import argparse
@@ -121,7 +124,7 @@ class TrossenOpenPIBridge:
         for i in range(len(full_action)):
             full_action[i] = np.clip(full_action[i], self.joint_limits[i][0], self.joint_limits[i][1])
 
-        if self.test_mode == "test_real_robot":
+        if self.test_mode == "test":
             logger.info(f"TEST MODE: Would execute action: {full_action}")
             return
         joint_features = list(self.robot._joint_ft.keys())
@@ -257,8 +260,8 @@ if __name__ == "__main__":
     parser.add_argument("--policy_host", default="localhost", help="Policy server host")
     parser.add_argument("--policy_port", type=int, default=8000, help="Policy server port")
     parser.add_argument("--control_freq", type=int, default=30, help="Control frequency in Hz")
-    parser.add_argument("--mode", choices=["autonomous", "test_real_robot"],  default="autonomous", required=True,
-                        help="Operation mode: autonomous (execute) or test_real_robot (use real robot data, no movement)")
+    parser.add_argument("--mode", choices=["autonomous", "test"],  default="autonomous", required=True,
+                        help="Operation mode: autonomous (execute) or test (no movement)")
     parser.add_argument("--task_prompt", default="move the arm to the left", help="Task description for the policy")
     parser.add_argument("--max_steps", type=int, default=1000, help="Maximum steps per episode")
     args = parser.parse_args()
