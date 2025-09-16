@@ -27,7 +27,6 @@ from lerobot.cameras.realsense.configuration_realsense import RealSenseCameraCon
 from collections import defaultdict
 from scipy.interpolate import PchipInterpolator
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lerobot'))
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -53,7 +52,8 @@ class TrossenOpenPIBridge:
             host=policy_server_host,
             port=policy_server_port
         )
-
+        # The camera names should match the ones expected by the policy
+        # e.g. "cam_high", "cam_low", "cam_right_wrist", "cam_left_wrist"
         bi_widowx_ai_config = BiWidowXAIFollowerConfig(
             left_arm_ip_address="192.168.1.5",
             right_arm_ip_address="192.168.1.4",
@@ -94,54 +94,45 @@ class TrossenOpenPIBridge:
         self.action_buffer = defaultdict(list)
         self.action_buffer_size = self.max_steps + self.action_chunk_size  # Buffer size to hold actions for the entire episode
 
-        self.action_dim = 14  # 7 joints per arm * 2 arms
+        self.action_dim = len(self.robot._joint_ft)  # 7 joints per arm * 2 arms
 
         self.joint_limits = np.array([
-            [-np.pi, np.pi],           # left_joint_0.pos
-            [0, np.pi / 2],  # left_joint_1.pos
-            [0, 3*np.pi/4],  # left_joint_2.pos
-            [-np.pi/2, np.pi/2],           # left_joint_3.pos
-            [-np.pi/2, np.pi/2],  # left_joint_4.pos
-            [-np.pi, np.pi],           # left_joint_5.pos
-            [0.0, 0.04],               # left_left_carriage_joint.pos
-            [-np.pi, np.pi],           # right_joint_0.pos
-            [0, np.pi / 2],  # right_joint_1.pos
-            [0, 3*np.pi / 4],  # right_joint_2.pos
-            [-np.pi/2, np.pi/2],           # right_joint_3.pos
-            [-np.pi/2, np.pi/2],  # right_joint_4.pos
-            [-np.pi, np.pi],           # right_joint_5.pos
-            [0.0, 0.04],               # right_left_carriage_joint.pos
+            [-np.pi, np.pi],            # left_joint_0.pos
+            [0, np.pi / 2],             # left_joint_1.pos
+            [0, 3*np.pi/4],             # left_joint_2.pos
+            [-np.pi/2, np.pi/2],        # left_joint_3.pos
+            [-np.pi/2, np.pi/2],        # left_joint_4.pos
+            [-np.pi, np.pi],            # left_joint_5.pos
+            [0.0, 0.04],                # left_left_carriage_joint.pos
+            [-np.pi, np.pi],            # right_joint_0.pos
+            [0, np.pi / 2],             # right_joint_1.pos
+            [0, 3*np.pi / 4],           # right_joint_2.pos
+            [-np.pi/2, np.pi/2],        # right_joint_3.pos
+            [-np.pi/2, np.pi/2],        # right_joint_4.pos
+            [-np.pi, np.pi],            # right_joint_5.pos
+            [0.0, 0.04],                # right_left_carriage_joint.pos
         ])
+
 
     def execute_action(self, action: np.ndarray):
         """Execute action on the arm."""
         full_action = action.copy()
-        
+
         for i in range(len(full_action)):
             full_action[i] = np.clip(full_action[i], self.joint_limits[i][0], self.joint_limits[i][1])
 
-        if self.test_mode:
+        if self.test_mode == "test_real_robot":
             logger.info(f"TEST MODE: Would execute action: {full_action}")
             return
-
-        left_arm_action = full_action[:7]
-        right_arm_action = full_action[7:]
-        action_dict = {}
-        for i in range(7):
-            if i == 6:
-                action_dict["left_left_carriage_joint.pos"] = left_arm_action[i]
-                action_dict["right_left_carriage_joint.pos"] = right_arm_action[i]
-            else:
-                action_dict[f"left_joint_{i}.pos"] = left_arm_action[i]
-                action_dict[f"right_joint_{i}.pos"] = right_arm_action[i]
+        joint_features = list(self.robot._joint_ft.keys())
+        action_dict = {k: full_action[i] for i, k in enumerate(joint_features)}
         self.robot.send_action(action_dict)
 
     def move_to_start_position(self, goal_position: np.ndarray, duration: float = 5.0):
-
         """The first position queried from the policy depends on the training data.
         Assuming the first position is a "stage" position will result in a large jump if the arm is not already there.
         To avoid this, we smoothly move the arm to a first action/position before sending the rest of the actions.
-        We use PCHIP interpolation for smooth trajectory generation and give it enough time to reach the position to prevent 
+        We use PCHIP interpolation for smooth trajectory generation and give it enough time to reach the position to prevent
         jumps and triggering safety stops (velocity limits)."""
 
         joint_pos_keys = [k for k in self.robot.get_observation().keys() if k.endswith('.pos')]
@@ -184,7 +175,7 @@ class TrossenOpenPIBridge:
 
 
             # Transform and resize images from all cameras
-            cameras = ['cam_high', 'cam_low', 'cam_right_wrist', 'cam_left_wrist']
+            cameras = list(self.robot._cameras_ft.keys())
             for cam in cameras:
                 image_hwc = observation_dict[cam]
                 image_resized = cv2.resize(image_hwc, (224, 224))
@@ -194,12 +185,7 @@ class TrossenOpenPIBridge:
             # Create observation for policy to follow the ALOHA format
             observation = {
                 "state": joint_positions,
-                "images": {
-                    "cam_high": observation_dict['cam_high'],
-                    "cam_low": observation_dict['cam_low'],
-                    "cam_right_wrist": observation_dict['cam_right_wrist'],
-                    "cam_left_wrist": observation_dict['cam_left_wrist'],
-                },
+                "images": {cam: observation_dict[cam] for cam in cameras},
                 "prompt": task_prompt
             }
 
@@ -209,7 +195,7 @@ class TrossenOpenPIBridge:
                 response = self.policy_client.infer(observation)
                 self.current_action_chunk = response["actions"]
 
-                for k in range(50):
+                for k in range(self.action_chunk_size):
                     future_t = self.episode_step + k
                     if future_t < self.action_buffer_size:
                         self.action_buffer[future_t].append(self.current_action_chunk[k])
@@ -259,10 +245,6 @@ class TrossenOpenPIBridge:
     def autonomous_mode(self, task_prompt: str = "look down"):
         """Run in autonomous mode where the arm executes policy predictions."""
         logger.info("Starting autonomous mode")
-        if self.test_mode:
-            logger.info("TEST MODE: Simulating autonomous mode without robot movement")
-        else:
-            logger.info("The arm will execute actions predicted by the Pi0 model.")
         self.run_episode(task_prompt=task_prompt)
 
     def cleanup(self):
@@ -275,7 +257,7 @@ if __name__ == "__main__":
     parser.add_argument("--policy_host", default="localhost", help="Policy server host")
     parser.add_argument("--policy_port", type=int, default=8000, help="Policy server port")
     parser.add_argument("--control_freq", type=int, default=30, help="Control frequency in Hz")
-    parser.add_argument("--mode", choices=["autonomous", "test_real_robot"], required=True,
+    parser.add_argument("--mode", choices=["autonomous", "test_real_robot"],  default="autonomous", required=True,
                         help="Operation mode: autonomous (execute) or test_real_robot (use real robot data, no movement)")
     parser.add_argument("--task_prompt", default="move the arm to the left", help="Task description for the policy")
     parser.add_argument("--max_steps", type=int, default=1000, help="Maximum steps per episode")
@@ -285,15 +267,11 @@ if __name__ == "__main__":
         policy_server_host=args.policy_host,
         policy_server_port=args.policy_port,
         control_frequency=args.control_freq,
-        test_mode=args.mode == "test_real_robot",
+        test_mode=args.mode,
         max_steps=args.max_steps
     )
 
-    if args.mode == "autonomous":
-        bridge.autonomous_mode(task_prompt=args.task_prompt)
-    else:
-        logger.info("TEST MODE: Will connect to robot, move to home position, and read real data but NOT execute policy actions!")
-        # If you want to implement test_real_robot_mode, add the method here.
-        logger.info("test_real_robot_mode is not implemented.")
+    bridge.autonomous_mode(task_prompt=args.task_prompt)
+
 
     bridge.cleanup()

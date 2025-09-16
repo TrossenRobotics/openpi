@@ -1,7 +1,7 @@
 [project]
-name = "trossen_ai"
+name = "trossen_openpi"
 version = "0.1.0"
-description = "Client for Trossen AI Arms"
+description = "OpenPi client for Trossen AI Arms"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
@@ -20,7 +20,7 @@ allow-direct-references = true
 
 [tool.uv.sources]
 openpi-client = { path = "../../packages/openpi-client" }
-lerobot = { git = "https://github.com/Interbotix/lerobot", branch = "open_pi_support" }
+lerobot = { git = "https://github.com/Interbotix/lerobot", branch = "trossen_ai_open_pi" }
 dlimp = { git = "https://github.com/kvablack/dlimp", rev = "ad72ce3a9b414db2185bc0b38461d4101a65477a" }
 
 [tool.uv.workspace]

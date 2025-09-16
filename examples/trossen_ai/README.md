@@ -233,7 +233,7 @@ Check the results out here:
 We run this exact same command for testing each of these scenarios. The command is:
 
 ```bash
-uv run examples/trossen_ai/main.py --mode autonomous --task_prompt "grab red cube"
+uv run main.py --mode autonomous --task_prompt "grab red cube"
 ```
 
 The task prompt remains the same for all tests, as we haven't collected any data for other object types or scenarios.
