@@ -42,7 +42,7 @@ class TrossenOpenPIBridge:
         policy_server_host: str = "localhost",
         policy_server_port: int = 8000,
         control_frequency: int = 30,
-        test_mode: bool = False,
+        test_mode: str = "autonomous",  # "autonomous" or "test"
         max_steps: int = 1000
     ):
         self.control_frequency = control_frequency
@@ -127,9 +127,12 @@ class TrossenOpenPIBridge:
         if self.test_mode == "test":
             logger.info(f"TEST MODE: Would execute action: {full_action}")
             return
-        joint_features = list(self.robot._joint_ft.keys())
-        action_dict = {k: full_action[i] for i, k in enumerate(joint_features)}
-        self.robot.send_action(action_dict)
+        elif self.test_mode == "autonomous":
+            joint_features = list(self.robot._joint_ft.keys())
+            action_dict = {k: full_action[i] for i, k in enumerate(joint_features)}
+            self.robot.send_action(action_dict)
+        else:
+            logger.error(f"Unknown mode: {self.test_mode}. No action executed.")
 
     def move_to_start_position(self, goal_position: np.ndarray, duration: float = 5.0):
         """The first position queried from the policy depends on the training data.
