@@ -162,7 +162,7 @@ class TrossenOpenPIBridge:
             positions = interpolator_position(current_time)
             self.execute_action(positions)
 
-    def run_episode(self, max_steps: int = 1000, task_prompt: str = "look down"):
+    def run_episode(self, task_prompt: str = "look down"):
         """Run a single episode of policy execution."""
         logger.info(f"Starting episode with prompt: '{task_prompt}'")
         self.episode_step = 0
@@ -263,7 +263,7 @@ if __name__ == "__main__":
     parser.add_argument("--policy_host", default="localhost", help="Policy server host")
     parser.add_argument("--policy_port", type=int, default=8000, help="Policy server port")
     parser.add_argument("--control_freq", type=int, default=30, help="Control frequency in Hz")
-    parser.add_argument("--mode", choices=["autonomous", "test"],  default="autonomous", required=True,
+    parser.add_argument("--mode", choices=["autonomous", "test"],  default="autonomous",
                         help="Operation mode: autonomous (execute) or test (no movement)")
     parser.add_argument("--task_prompt", default="move the arm to the left", help="Task description for the policy")
     parser.add_argument("--max_steps", type=int, default=1000, help="Maximum steps per episode")

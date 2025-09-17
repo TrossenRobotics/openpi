@@ -82,6 +82,10 @@ This allows you to tailor the training process to your dataset and requirements.
 
 Here is an example configuration for training on the Trossen AI dataset:
 
+
+The camera mapping are used to map the camera names in the dataset to the expected input names for the Pi-0 model.
+In this example the dataset has 4 cameras: top, bottom, left and right. We map them to the expected input names of the model: cam_high, cam_low, cam_left_wrist and cam_right_wrist.
+
 ```python
 TrainConfig(
         name="pi0_trossen_transfer_block",
