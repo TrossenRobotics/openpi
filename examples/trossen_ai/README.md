@@ -3,8 +3,19 @@
 
 This guide walks you through collecting episodes, training with OpenPi, fine-tuning using LoRA, evaluating, and running inference.
 
-## Collect episodes using LeRobot
+> **Note:**
+> - This example uses two different versions of LeRobot:
+>   - **LeRobot V0.1.0** for training and dependency management.
+>   - **LeRobot V0.3.2** for running the client and inference.
+> - The custom LeRobot V0.3.2 (with BiWidowXAIFollower support) is available on GitHub:
+>   [Interbotix/lerobot – `trossen_ai_open_pi` branch](https://github.com/Interbotix/lerobot/tree/trossen_ai_open_pi)
+> - **LeRobot V0.1.0** is installed at `.venv/lib/python3.11/site-packages/lerobot`.
+> - **LeRobot V0.3.2** is installed at `examples/trossen_ai/.venv/lib/python3.11/site-packages/lerobot`.
+> - **Training commands** should be run from the project root to use LeRobot V0.1.0.
+> - **Client commands** should be run from the `examples/trossen_ai` directory to use LeRobot V0.3.2.
+> - This setup works because `uv` manages dependencies in isolated virtual environments for each project.
 
+## Collect episodes using LeRobot
 
 We collect episodes using ``Interbotix/lerobot`` for more information on installation and recording episodes check the following:
 1. [Installation](https://docs.trossenrobotics.com/trossen_arm/main/tutorials/lerobot/setup.html)
@@ -90,6 +101,7 @@ TrainConfig(
                         {
                             "images": {
                                 "cam_high": "observation.images.top",
+                                "cam_low": "observation.images.bottom",
                                 "cam_left_wrist": "observation.images.left",
                                 "cam_right_wrist": "observation.images.right",
                             },
@@ -111,7 +123,8 @@ TrainConfig(
     ),
 ```
 
-We trained on a RTX5090 and fine tuned using LoRA
+We have successfully trained models on an RTX5090 and fine-tuned using LoRA.
+
 
 ## Checkpoints
 
@@ -142,11 +155,6 @@ uv run scripts/serve_policy.py policy:checkpoint \
     --policy.dir=checkpoints/pi0_trossen_transfer_block/test_pi0_finetuning/19999
 ```
 
-```bash
-uv run scripts/serve_policy.py policy:checkpoint \
-    --policy.config=pi0_trossen_transfer_block \
-    --policy.dir=checkpoints/pi0_trossen_transfer_block/block_transfer_training_100k/99999
-```
 This command serves the trained policy, making it available for inference.
 
 ### Start the Client
@@ -156,13 +164,13 @@ Before starting the client we need to built the `LeRobot V0.3.2` package it need
 
 ```bash
 cd examples/trossen_ai
-GIT_LFS_SKIP_SMUDGE=1 uv sync
 GIT_LFS_SKIP_SMUDGE=1 uv pip install -e .
 ```
 
+The client script requires the latest version of `LeRobot V0.3.2`, while the OpenPi repository depends on an older version `LeRobot V0.1.0` for data loading. To prevent version conflicts, the ``trossen_ai`` package uses the ``Interbotix/lerobot`` repository as its dependency. When using ``uv`` for package management, this setup creates a **separate virtual environment** for ``trossen_ai``. If you need to modify any LeRobot packages, ensure you are editing them in the **correct environment**.
 
-Run the client to interact with the policy server and execute tasks autonomously. Specify the desired task prompt:
-We will use a the `examples/trossen_ai` as root directory for running the client. This is required as the client uses a different version of lerobot (0.3.2) than the training environment.
+Run the client to interact with the policy server and execute tasks autonomously.
+We will use a the `examples/trossen_ai` as root directory for running the client. This is required as the client uses a different version of `LeRobot V0.3.2` than the training environment.
 
 
 ```bash
@@ -173,7 +181,7 @@ uv run main.py --mode autonomous --task_prompt "grab red cube"
 The client will connect to the policy server and perform the specified task using the trained model.
 
 
-You can change the cameras and arm ip address in the script by editing
+You can change the cameras and arm ip address in the script `examples/trossen_ai/main.py` by editing
 
 ```python
 bi_widowx_ai_config = BiWidowXAIFollowerConfig(
@@ -202,14 +210,29 @@ bi_widowx_ai_config = BiWidowXAIFollowerConfig(
         )
 ```
 
+The client script provides parameters to control both the **rate of inference** and **temporal ensembling**.
 
-You can also change the inference rate by modifying the `rate_of_inference` attribute. The policy will be queried for new actions every `rate_of_inference` control steps. The value 50 is in accordance with the paper for Pi-0.
+The **rate of inference** determines how often the policy is queried for new actions. Since each query is computationally expensive, frequent queries reduce the control frequency to around **10 Hz**, which can lead to jerky motions. To avoid this, you should choose a rate that balances **smoothness** and **responsiveness**.
+
+- According to the Pi-0 paper, the control loop runs at **50 Hz**, with inference every **0.5 s** (after 25 actions).
+- In our case, the control loop runs at **30 Hz** to align with the camera frame rate.  
+
+Practical trade-offs:
+
+- **Rate = 50** → smoother motion, less responsive to environment changes.  
+- **Rate = 25** → more responsive, but noticeably jerky motion.  
+
+Depending on your setup, you may need to adjust this parameter for optimal performance.
 
 ```python
 self.rate_of_inference = 50  # Number of control steps per policy inference
 ```
 
-We have also implemented logic for temporal ensembling, which can be controlled via the `temporal_ensemble_coefficient` attribute. Setting `temporal_ensemble_coefficient` to a value between 0 and 1 enables exponential moving average of the action predictions, potentially smoothing out the control commands.
+
+**Temporal ensembling** is a technique for smoothing the actions generated by the policy.  
+It was originally introduced in the [ACT paper](https://arxiv.org/abs/2304.13705), and later mentioned in the Pi-0 paper.
+
+While simple to implement, the **Pi-0 appendix notes that temporal ensembling can actually hurt performance**. Our own experiments confirmed this — we observed no benefit, so by default the temporal ensembling weight is set to ``None``. That said, we have included an implementation of temporal ensembling in the client script for users who wish to experiment with it.
 
 ```python
 self.temporal_ensemble_coefficient = None  # Temporal ensembling weight (can be set to None for no ensembling)
