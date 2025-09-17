@@ -182,19 +182,19 @@ bi_widowx_ai_config = BiWidowXAIFollowerConfig(
             min_time_to_move_multiplier=4.0,
             id="bimanual_follower",
             cameras={
-                "top": RealSenseCameraConfig(
+                "cam_high": RealSenseCameraConfig(
                     serial_number_or_name="218622270304",
                     width=640, height=480, fps=30, use_depth=False
                 ),
-                "bottom": RealSenseCameraConfig(
+                "cam_low": RealSenseCameraConfig(
                     serial_number_or_name="130322272628",
                     width=640, height=480, fps=30, use_depth=False
                 ),
-                "right": RealSenseCameraConfig(
+                "cam_right_wrist": RealSenseCameraConfig(
                     serial_number_or_name="128422271347",
                     width=640, height=480, fps=30, use_depth=False
                 ),
-                "left": RealSenseCameraConfig(
+                "cam_left_wrist": RealSenseCameraConfig(
                     serial_number_or_name="218622274938",
                     width=640, height=480, fps=30, use_depth=False
                 ),
@@ -209,10 +209,10 @@ You can also change the inference rate by modifying the `rate_of_inference` attr
 self.rate_of_inference = 50  # Number of control steps per policy inference
 ```
 
-We have also implemented logic for temporal ensembling, which can be controlled via the `m` attribute. Setting `m` to a value between 0 and 1 enables exponential moving average of the action predictions, potentially smoothing out the control commands.
+We have also implemented logic for temporal ensembling, which can be controlled via the `temporal_ensemble_coefficient` attribute. Setting `temporal_ensemble_coefficient` to a value between 0 and 1 enables exponential moving average of the action predictions, potentially smoothing out the control commands.
 
 ```python
-self.m = None  # Temporal ensembling weight (can be set to None for no ensembling)
+self.temporal_ensemble_coefficient = None  # Temporal ensembling weight (can be set to None for no ensembling)
 ```
 The paper, however, suggests not to use temporal ensembling for the Pi-0 policy. So, by default this value will be None.
 

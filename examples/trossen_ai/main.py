@@ -89,7 +89,7 @@ class TrossenOpenPIBridge:
         self.action_chunk_size = 50  # Number of actions per chunk from the policy (Defined by the policy server in this case 50)
         self.episode_step = 0
         self.is_running = False
-        self.rate_of_inference = 25  # Number of control steps per policy inference
+        self.rate_of_inference = 50  # Number of control steps per policy inference (matches README and Pi-0 paper)
 
         self.temporal_ensemble_coefficient = None  # Temporal ensembling weight (can be set to None for no ensembling)
 
