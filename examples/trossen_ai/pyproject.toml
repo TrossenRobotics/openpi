@@ -1,0 +1,28 @@
+[project]
+name = "trossen_openpi"
+version = "0.1.0"
+description = "OpenPi client for Trossen AI Arms"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+dependencies = [
+    "numpy>=1.22.4,<2.0.0",
+    "numpydantic>=1.6.6",
+    "opencv-python>=4.10.0.84",
+    "openpi-client",
+    "lerobot[trossen_ai]",
+    "scipy>=1.10.1",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+
+[tool.uv.sources]
+openpi-client = { path = "../../packages/openpi-client" }
+lerobot = { git = "https://github.com/Interbotix/lerobot", branch = "trossen_ai_open_pi" }
+dlimp = { git = "https://github.com/kvablack/dlimp", rev = "ad72ce3a9b414db2185bc0b38461d4101a65477a" }
+
+[tool.uv.workspace]
+members = ["packages/*"]
+

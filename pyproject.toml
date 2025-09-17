@@ -59,6 +59,9 @@ rlds = [
     "tensorflow-datasets==4.9.9",
 ]
 
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [tool.uv]
 override-dependencies = ["ml-dtypes==0.4.1", "tensorstore==0.1.74"]
 
