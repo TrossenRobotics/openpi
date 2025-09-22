@@ -99,24 +99,6 @@ class TrossenOpenPIBridge:
 
         self.action_dim = len(self.robot._joint_ft)  # 7 joints per arm * 2 arms
 
-        self.joint_limits = np.array([
-            [-np.pi, np.pi],            # left_joint_0.pos
-            [0, np.pi / 2],             # left_joint_1.pos
-            [0, 3*np.pi/4],             # left_joint_2.pos
-            [-np.pi/2, np.pi/2],        # left_joint_3.pos
-            [-np.pi/2, np.pi/2],        # left_joint_4.pos
-            [-np.pi, np.pi],            # left_joint_5.pos
-            [0.0, 0.04],                # left_left_carriage_joint.pos
-            [-np.pi, np.pi],            # right_joint_0.pos
-            [0, np.pi / 2],             # right_joint_1.pos
-            [0, 3*np.pi / 4],           # right_joint_2.pos
-            [-np.pi/2, np.pi/2],        # right_joint_3.pos
-            [-np.pi/2, np.pi/2],        # right_joint_4.pos
-            [-np.pi, np.pi],            # right_joint_5.pos
-            [0.0, 0.04],                # right_left_carriage_joint.pos
-        ])
-
-
     def execute_action(self, action: np.ndarray):
         """Execute action on the arm."""
         full_action = action.copy()
