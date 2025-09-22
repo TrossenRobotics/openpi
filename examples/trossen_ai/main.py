@@ -164,9 +164,9 @@ class TrossenOpenPIBridge:
             for cam in cameras:
                 image_hwc = observation_dict[cam]
                 #convert BGR to RGB
-                image_hwc = cv2.cvtColor(image_hwc, cv2.COLOR_BGR2RGB)
                 image_resized = cv2.resize(image_hwc, (224, 224))
-                image_chw = np.transpose(image_resized, (2, 0, 1))
+                image_rgb = cv2.cvtColor(image_resized, cv2.COLOR_BGR2RGB)
+                image_chw = np.transpose(image_rgb, (2, 0, 1))
                 observation_dict[cam] = image_chw
 
             # Create observation for policy to follow the ALOHA format
