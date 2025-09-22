@@ -121,9 +121,6 @@ class TrossenOpenPIBridge:
         """Execute action on the arm."""
         full_action = action.copy()
 
-        for i in range(len(full_action)):
-            full_action[i] = np.clip(full_action[i], self.joint_limits[i][0], self.joint_limits[i][1])
-
         if self.test_mode == "test":
             logger.info(f"TEST MODE: Would execute action: {full_action}")
             return
@@ -184,6 +181,8 @@ class TrossenOpenPIBridge:
             cameras = list(self.robot._cameras_ft.keys())
             for cam in cameras:
                 image_hwc = observation_dict[cam]
+                #convert BGR to RGB
+                image_hwc = cv2.cvtColor(image_hwc, cv2.COLOR_BGR2RGB)
                 image_resized = cv2.resize(image_hwc, (224, 224))
                 image_chw = np.transpose(image_resized, (2, 0, 1))
                 observation_dict[cam] = image_chw
