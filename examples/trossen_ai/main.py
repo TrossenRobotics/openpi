@@ -99,30 +99,9 @@ class TrossenOpenPIBridge:
 
         self.action_dim = len(self.robot._joint_ft)  # 7 joints per arm * 2 arms
 
-        self.joint_limits = np.array([
-            [-np.pi, np.pi],            # left_joint_0.pos
-            [0, np.pi / 2],             # left_joint_1.pos
-            [0, 3*np.pi/4],             # left_joint_2.pos
-            [-np.pi/2, np.pi/2],        # left_joint_3.pos
-            [-np.pi/2, np.pi/2],        # left_joint_4.pos
-            [-np.pi, np.pi],            # left_joint_5.pos
-            [0.0, 0.04],                # left_left_carriage_joint.pos
-            [-np.pi, np.pi],            # right_joint_0.pos
-            [0, np.pi / 2],             # right_joint_1.pos
-            [0, 3*np.pi / 4],           # right_joint_2.pos
-            [-np.pi/2, np.pi/2],        # right_joint_3.pos
-            [-np.pi/2, np.pi/2],        # right_joint_4.pos
-            [-np.pi, np.pi],            # right_joint_5.pos
-            [0.0, 0.04],                # right_left_carriage_joint.pos
-        ])
-
-
     def execute_action(self, action: np.ndarray):
         """Execute action on the arm."""
         full_action = action.copy()
-
-        for i in range(len(full_action)):
-            full_action[i] = np.clip(full_action[i], self.joint_limits[i][0], self.joint_limits[i][1])
 
         if self.test_mode == "test":
             logger.info(f"TEST MODE: Would execute action: {full_action}")
@@ -184,8 +163,10 @@ class TrossenOpenPIBridge:
             cameras = list(self.robot._cameras_ft.keys())
             for cam in cameras:
                 image_hwc = observation_dict[cam]
+                #convert BGR to RGB
                 image_resized = cv2.resize(image_hwc, (224, 224))
-                image_chw = np.transpose(image_resized, (2, 0, 1))
+                image_rgb = cv2.cvtColor(image_resized, cv2.COLOR_BGR2RGB)
+                image_chw = np.transpose(image_rgb, (2, 0, 1))
                 observation_dict[cam] = image_chw
 
             # Create observation for policy to follow the ALOHA format
