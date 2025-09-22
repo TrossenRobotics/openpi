@@ -152,32 +152,32 @@ class TrossenOpenPIBridge:
 
         while self.is_running and self.episode_step < self.max_steps:
             start_loop_time = time.perf_counter()
-            observation_dict = self.robot.get_observation()
-
-            # Extract joint positions from observation
-            joint_pos_keys = [k for k in observation_dict.keys() if k.endswith('.pos')]
-            joint_positions = np.array([observation_dict[k] for k in joint_pos_keys])
-
-
-            # Transform and resize images from all cameras
-            cameras = list(self.robot._cameras_ft.keys())
-            for cam in cameras:
-                image_hwc = observation_dict[cam]
-                #convert BGR to RGB
-                image_resized = cv2.resize(image_hwc, (224, 224))
-                image_rgb = cv2.cvtColor(image_resized, cv2.COLOR_BGR2RGB)
-                image_chw = np.transpose(image_rgb, (2, 0, 1))
-                observation_dict[cam] = image_chw
-
-            # Create observation for policy to follow the ALOHA format
-            observation = {
-                "state": joint_positions,
-                "images": {cam: observation_dict[cam] for cam in cameras},
-                "prompt": task_prompt
-            }
 
             # Request new action chunk after consuming the previous one
             if self.current_action_chunk is None or self.action_chunk_idx >= self.rate_of_inference:
+                observation_dict = self.robot.get_observation()
+
+                # Extract joint positions from observation
+                joint_pos_keys = [k for k in observation_dict.keys() if k.endswith('.pos')]
+                joint_positions = np.array([observation_dict[k] for k in joint_pos_keys])
+
+                # Transform and resize images from all cameras
+                cameras = list(self.robot._cameras_ft.keys())
+                for cam in cameras:
+                    image_hwc = observation_dict[cam]
+                    #convert BGR to RGB
+                    image_resized = cv2.resize(image_hwc, (224, 224))
+                    image_rgb = cv2.cvtColor(image_resized, cv2.COLOR_BGR2RGB)
+                    image_chw = np.transpose(image_rgb, (2, 0, 1))
+                    observation_dict[cam] = image_chw
+
+                # Create observation for policy to follow the ALOHA format
+                observation = {
+                    "state": joint_positions,
+                    "images": {cam: observation_dict[cam] for cam in cameras},
+                    "prompt": task_prompt
+                }
+            
                 logger.info(f"Step {self.episode_step}: Requesting new action chunk")
                 response = self.policy_client.infer(observation)
                 self.current_action_chunk = response["actions"]
