@@ -47,10 +47,44 @@ def init_logging():
     logger.handlers[0].setFormatter(formatter)
 
 
+def init_huggingface(config: _config.TrainConfig):
+    """Initialize Hugging Face authentication if token is provided."""
+    # Get token from config or environment variable
+    token = config.huggingface_token
+    if token is None:
+        import os
+        token = os.getenv("HUGGINGFACE_TOKEN")
+        print(f"Token was retrieved from environment variable")
+    
+    if token is not None:
+        try:
+            from huggingface_hub import login
+            # Log in programmatically
+            login(token=token, add_to_git_credential=True)
+            logging.info("Successfully logged in to Hugging Face")
+            print(f"Logged in successfully")
+        except ImportError:
+            print(f"huggingface_hub not available, skipping Hugging Face login")
+            logging.warning("huggingface_hub not available, skipping Hugging Face login")
+        except Exception as e:
+            print(f"Failed to login to Hugging Face: {e}")
+            logging.warning(f"Failed to login to Hugging Face: {e}")
+
+
 def init_wandb(config: _config.TrainConfig, *, resuming: bool, log_code: bool = False, enabled: bool = True):
     if not enabled:
         wandb.init(mode="disabled")
         return
+
+    # Login with API key if provided (for environments like SageMaker)
+    api_key = config.wandb_api_key
+    if api_key is None:
+        # Try to get API key from environment variable
+        import os
+        api_key = os.getenv("WANDB_API_KEY")
+    
+    if api_key is not None:
+        wandb.login(key=api_key)
 
     ckpt_dir = config.checkpoint_dir
     if not ckpt_dir.exists():
@@ -215,6 +249,7 @@ def main(config: _config.TrainConfig):
         overwrite=config.overwrite,
         resume=config.resume,
     )
+    init_huggingface(config)
     init_wandb(config, resuming=resuming, enabled=config.wandb_enabled)
 
     data_loader = _data_loader.create_data_loader(
@@ -276,5 +311,112 @@ def main(config: _config.TrainConfig):
     checkpoint_manager.wait_until_finished()
 
 
+def filter_sagemaker_args(argv):
+    """
+    Filter out SageMaker-specific arguments while preserving legitimate training arguments.
+    
+    SageMaker often adds extra arguments that can interfere with tyro's CLI parsing.
+    This function identifies and removes those unwanted arguments while preserving
+    all legitimate training arguments.
+    """
+    import re
+    
+    # Common SageMaker arguments to filter out (both --key and --key=value formats)
+    sagemaker_patterns = [
+        r'^--model-dir(=.*)?$',           # SageMaker model directory
+        r'^--model_dir(=.*)?$', 
+        r'^--sm-model-dir(=.*)?$',        # SageMaker model directory (alternate)
+        r'^--output-data-dir(=.*)?$',     # SageMaker output directory
+        r'^--output_data_dir(=.*)?$',
+        r'^--channel-.*$',                # SageMaker input channels
+        r'^--training(=.*)?$',            # SageMaker training flag
+        r'^--hosts(=.*)?$',               # SageMaker distributed training
+        r'^--current-host(=.*)?$',        # SageMaker current host
+        r'^--current_host(=.*)?$',
+        r'^--num-gpus(=.*)?$',            # SageMaker GPU count
+        r'^--num_gpus(=.*)?$',
+        r'^--num-cpus(=.*)?$',            # SageMaker CPU count  
+        r'^--num_cpus(=.*)?$',
+        r'^--instance-groups(=.*)?$',     # SageMaker instance groups
+        r'^--instance_groups(=.*)?$',
+        r'^--network-interface-name(=.*)?$',  # SageMaker network interface
+        r'^--network_interface_name(=.*)?$',
+    ]
+    
+    # Known legitimate training arguments (both --key and --key=value formats)
+    training_arg_patterns = [
+        r'^--exp-name(=.*)?$',
+        r'^--exp_name(=.*)?$',
+        r'^--overwrite$',
+        r'^--resume$', 
+        r'^--wandb-enabled(=.*)?$',
+        r'^--wandb_enabled(=.*)?$',
+        r'^--wandb-api-key(=.*)?$',
+        r'^--wandb_api_key(=.*)?$',
+        r'^--huggingface-token(=.*)?$',
+        r'^--huggingface_token(=.*)?$',
+        r'^--batch-size(=.*)?$',
+        r'^--batch_size(=.*)?$',
+        r'^--num-train-steps(=.*)?$',
+        r'^--num_train_steps(=.*)?$',
+        r'^--log-interval(=.*)?$',
+        r'^--log_interval(=.*)?$',
+        r'^--save-interval(=.*)?$',
+        r'^--save_interval(=.*)?$',
+        r'^--seed(=.*)?$',
+    ]
+    
+    filtered_args = []
+    skip_next = False
+    
+    for i, arg in enumerate(argv):
+        if skip_next:
+            skip_next = False
+            continue
+            
+        # Always preserve the script name and config name (first few args)
+        if i < 3:  # ['python', 'scripts/train.py', 'config_name']
+            filtered_args.append(arg)
+            continue
+            
+        # Check if this is a SageMaker argument to filter out
+        is_sagemaker_arg = any(re.match(pattern, arg) for pattern in sagemaker_patterns)
+        
+        if is_sagemaker_arg:
+            # Skip this argument and its value (only if it doesn't contain '=' and next arg is a value)
+            if '=' not in arg and i + 1 < len(argv) and not argv[i + 1].startswith('--'):
+                skip_next = True
+            continue
+            
+        # Check if this is a known training argument
+        is_training_arg = any(re.match(pattern, arg) for pattern in training_arg_patterns)
+        
+        if is_training_arg:
+            # Preserve training arguments and their values
+            filtered_args.append(arg)
+            # If it's a separate key-value pair (not --key=value), preserve the value too
+            if '=' not in arg and i + 1 < len(argv) and not argv[i + 1].startswith('--'):
+                filtered_args.append(argv[i + 1])
+                skip_next = True
+        elif not arg.startswith('--'):
+            # This is a value for a previous argument (already handled above)
+            filtered_args.append(arg)
+        else:
+            # Unknown argument - log and discard for safety
+            logging.info(f"Discarding unknown argument: {arg}")
+            # Skip its value if it has one
+            if i + 1 < len(argv) and not argv[i + 1].startswith('--'):
+                skip_next = True
+            
+    return filtered_args
+
+
 if __name__ == "__main__":
+
+    import sys
+
+    # Filter out SageMaker-specific arguments while preserving legitimate training arguments
+    filtered_argv = filter_sagemaker_args(sys.argv)
+    sys.argv = filtered_argv
+
     main(_config.cli())
