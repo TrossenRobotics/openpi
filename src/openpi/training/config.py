@@ -515,6 +515,10 @@ class TrainConfig:
 
     # If true, will enable wandb logging.
     wandb_enabled: bool = True
+    # Wandb API key for authentication. If provided, will login before initializing wandb.
+    wandb_api_key: str | None = None
+    # Hugging Face token for authentication. If provided, will login before training.
+    huggingface_token: str | None = None
 
     # Used to pass metadata to the policy server.
     policy_metadata: dict[str, Any] | None = None
