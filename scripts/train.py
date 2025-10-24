@@ -60,7 +60,7 @@ def init_huggingface(config: _config.TrainConfig):
         try:
             from huggingface_hub import login
             # Log in programmatically
-            login(token=token, add_to_git_credential=True)
+            login(token=token, add_to_git_credential=False)
             logging.info("Successfully logged in to Hugging Face")
             print(f"Logged in successfully")
         except ImportError:
@@ -414,6 +414,10 @@ def filter_sagemaker_args(argv):
 if __name__ == "__main__":
 
     import sys
+
+    # Log the original sys.argv for debugging
+    logging.basicConfig(level=logging.INFO)
+    logging.info(f"Original sys.argv: {sys.argv}")
 
     # Filter out SageMaker-specific arguments while preserving legitimate training arguments
     filtered_argv = filter_sagemaker_args(sys.argv)
