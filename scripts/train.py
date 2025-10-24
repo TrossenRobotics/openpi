@@ -28,7 +28,7 @@ import openpi.training.sharding as sharding
 import openpi.training.utils as training_utils
 import openpi.training.weight_loaders as _weight_loaders
 import os
-
+import sys
 
 def init_logging():
     """Custom logging format for better readability."""
@@ -54,7 +54,6 @@ def init_huggingface(config: _config.TrainConfig):
     # Get token from config or environment variable
     token = config.huggingface_token
     if token is None:
-        import os
         token = os.getenv("HUGGINGFACE_TOKEN")
         print(f"Token was retrieved from environment variable")
     
@@ -291,6 +290,8 @@ def main(config: _config.TrainConfig):
         initial=start_step,
         total=config.num_train_steps,
         dynamic_ncols=True,
+        disable=not sys.stdout.isatty(),
+        file=sys.stdout,
     )
 
     infos = []
@@ -416,8 +417,7 @@ def filter_sagemaker_args(argv):
 
 if __name__ == "__main__":
 
-    import sys
-
+    
     # Log the original sys.argv for debugging
     logging.basicConfig(level=logging.INFO)
     logging.info(f"Original sys.argv: {sys.argv}")
