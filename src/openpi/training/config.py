@@ -787,6 +787,8 @@ _CONFIGS = [
         ).get_freeze_filter(),
         # Turn off EMA for LoRA finetuning.
         ema_decay=None,
+        save_interval=10,
+        log_interval=1,
     ),
     TrainConfig(
         name="pi0_fast_libero",
