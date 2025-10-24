@@ -27,6 +27,7 @@ import openpi.training.optimizer as _optimizer
 import openpi.training.sharding as sharding
 import openpi.training.utils as training_utils
 import openpi.training.weight_loaders as _weight_loaders
+import os
 
 
 def init_logging():
@@ -83,7 +84,6 @@ def init_wandb(config: _config.TrainConfig, *, resuming: bool, log_code: bool = 
     api_key = config.wandb_api_key
     if api_key is None:
         # Try to get API key from environment variable
-        import os
         api_key = os.getenv("WANDB_API_KEY")
     
     if api_key is not None:
