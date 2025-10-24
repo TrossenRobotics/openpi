@@ -1,6 +1,7 @@
 import dataclasses
 import functools
 import logging
+from logging import config
 import platform
 from typing import Any
 
@@ -76,6 +77,8 @@ def init_wandb(config: _config.TrainConfig, *, resuming: bool, log_code: bool = 
         wandb.init(mode="disabled")
         return
 
+    os.makedirs("/opt/ml/output/wandb", exist_ok=True)
+    os.environ["WANDB_DIR"] = "/opt/ml/output/wandb"
     # Login with API key if provided (for environments like SageMaker)
     api_key = config.wandb_api_key
     if api_key is None:
