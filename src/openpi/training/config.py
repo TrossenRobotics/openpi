@@ -721,7 +721,7 @@ _CONFIGS = [
         ),
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_base/params"),
         num_train_steps=80_000,
-        batch_size=2,
+        batch_size=8,
     ),
     TrainConfig(
         name="pi0_trossen_transfer_block",
