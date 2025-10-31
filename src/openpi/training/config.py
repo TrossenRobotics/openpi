@@ -728,7 +728,7 @@ _CONFIGS = [
         ).get_freeze_filter(),
         # Turn off EMA for LoRA finetuning.
         ema_decay=None,
-        save_interval=30000,
+        save_interval=5000,
     ),
     TrainConfig(
         name="pi05_trossen_transfer_block",
