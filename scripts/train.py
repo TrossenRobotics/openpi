@@ -222,6 +222,12 @@ def main(config: _config.TrainConfig):
         sharding=data_sharding,
         shuffle=True,
     )
+    
+    # Log the total number of frames in the dataset
+    if hasattr(data_loader, '_data_loader') and hasattr(data_loader._data_loader, 'torch_loader'):
+        dataset_size = len(data_loader._data_loader.torch_loader.dataset)
+        logging.info(f"Dataset contains {dataset_size} total frames")
+    
     data_iter = iter(data_loader)
     batch = next(data_iter)
     logging.info(f"Initialized data loader:\n{training_utils.array_tree_to_info(batch)}")
