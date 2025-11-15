@@ -137,6 +137,9 @@ def create_torch_dataset(
         return FakeDataset(model_config, num_samples=1024)
 
     dataset_meta = lerobot_dataset.LeRobotDatasetMetadata(repo_id, root=data_config.local_root)
+    
+    # Note: We don't pass episodes to LeRobotDataset due to a bug in lerobot's episode filtering.
+    # Instead, we load all episodes and filter afterwards using Subset.
     dataset = lerobot_dataset.LeRobotDataset(
         data_config.repo_id,
         root=data_config.local_root,
@@ -144,6 +147,14 @@ def create_torch_dataset(
             key: [t / dataset_meta.fps for t in range(action_horizon)] for key in data_config.action_sequence_keys
         },
     )
+
+    # If episodes are specified, filter the dataset to only include data from those episodes
+    if data_config.episodes is not None:
+        # Get indices of all data points that belong to the specified episodes
+        episode_indices = torch.stack([dataset.hf_dataset[i]["episode_index"] for i in range(len(dataset))])
+        desired_episodes = set(data_config.episodes)
+        filtered_indices = [i for i in range(len(dataset)) if episode_indices[i].item() in desired_episodes]
+        dataset = torch.utils.data.Subset(dataset, filtered_indices)
 
     if data_config.prompt_from_task:
         dataset = TransformedDataset(dataset, [_transforms.PromptFromLeRobotTask(dataset_meta.tasks)])
