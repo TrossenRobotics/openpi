@@ -10,9 +10,12 @@ dependencies = [
     "numpydantic>=1.6.6",
     "opencv-python>=4.10.0.84",
     "openpi-client",
-    "lerobot[trossen_ai]",
+    "lerobot_trossen",
     "scipy>=1.10.1",
 ]
+
+[tool.uv]
+override-dependencies= ["rerun-sdk"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
@@ -20,7 +23,7 @@ allow-direct-references = true
 
 [tool.uv.sources]
 openpi-client = { path = "../../packages/openpi-client" }
-lerobot = { git = "https://github.com/Interbotix/lerobot", branch = "trossen_ai_open_pi" }
+lerobot_trossen = { git = "https://github.com/TrossenRobotics/lerobot_trossen.git", branch = "main" }
 dlimp = { git = "https://github.com/kvablack/dlimp", rev = "ad72ce3a9b414db2185bc0b38461d4101a65477a" }
 
 [tool.uv.workspace]

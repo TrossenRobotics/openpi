@@ -24,15 +24,19 @@ import os
 import numpy as np
 from openpi_client import websocket_client_policy
 import cv2
-from lerobot.robots import make_robot_from_config
-from lerobot.robots.bi_widowxai_follower.config_bi_widowxai_follower import BiWidowXAIFollowerConfig
-from lerobot.cameras.realsense.configuration_realsense import RealSenseCameraConfig
 from collections import defaultdict
 from scipy.interpolate import PchipInterpolator
 
+from lerobot.cameras.realsense.configuration_realsense import RealSenseCameraConfig
+from lerobot.robots import (  # noqa: F401
+    make_robot_from_config,
+)
+from lerobot_robot_trossen.config_bi_widowxai_follower import BiWidowXAIFollowerRobotConfig
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+
 
 class TrossenOpenPIBridge:
     """Bridge between a Trossen AI Stationary Kit and OpenPI policy server."""
@@ -55,13 +59,13 @@ class TrossenOpenPIBridge:
             host=policy_server_host,
             port=policy_server_port
         )
-        # The camera names should match the ones expected by the policy
-        # e.g. "cam_high", "cam_low", "cam_right_wrist", "cam_left_wrist"
-        bi_widowx_ai_config = BiWidowXAIFollowerConfig(
+
+        robot_config = BiWidowXAIFollowerRobotConfig(
+            id="bimanual_follower",
             left_arm_ip_address="192.168.1.5",
             right_arm_ip_address="192.168.1.4",
             min_time_to_move_multiplier=4.0,
-            id="bimanual_follower",
+            loop_rate=30,
             cameras={
                 "cam_high": RealSenseCameraConfig(
                     serial_number_or_name="218622270304",
@@ -81,7 +85,7 @@ class TrossenOpenPIBridge:
                 ),
             }
         )
-        self.robot = make_robot_from_config(bi_widowx_ai_config)
+        self.robot = make_robot_from_config(robot_config)
         self.robot.connect()
 
         self.current_action_chunk = None
