@@ -258,7 +258,12 @@ if __name__ == "__main__":
         max_steps=args.max_steps
     )
 
-    bridge.autonomous_mode(task_prompt=args.task_prompt)
+    try:
+        bridge.autonomous_mode(task_prompt=args.task_prompt)
+    except KeyboardInterrupt:
+        logger.info("Keyboard interrupt detected. Cleaning up...")
+    except Exception as e:
+        logger.error(f"Error in autonomous mode: {e}")
+    finally:
+        bridge.cleanup()
 
-
-    bridge.cleanup()
