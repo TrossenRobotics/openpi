@@ -64,19 +64,19 @@ class TrossenOpenPIBridge:
             id="bimanual_follower",
             cameras={
                 "cam_high": RealSenseCameraConfig(
-                    serial_number_or_name="218622270304",
+                    serial_number_or_name="230322270292",
                     width=640, height=480, fps=30, use_depth=False
                 ),
                 "cam_low": RealSenseCameraConfig(
-                    serial_number_or_name="130322272628",
+                    serial_number_or_name="230322271134",
                     width=640, height=480, fps=30, use_depth=False
                 ),
                 "cam_right_wrist": RealSenseCameraConfig(
-                    serial_number_or_name="128422271347",
+                    serial_number_or_name="230422272861",
                     width=640, height=480, fps=30, use_depth=False
                 ),
                 "cam_left_wrist": RealSenseCameraConfig(
-                    serial_number_or_name="218622274938",
+                    serial_number_or_name="230322270548",
                     width=640, height=480, fps=30, use_depth=False
                 ),
             }
@@ -247,7 +247,7 @@ if __name__ == "__main__":
     parser.add_argument("--mode", choices=["autonomous", "test"],  default="autonomous",
                         help="Operation mode: autonomous (execute) or test (no movement)")
     parser.add_argument("--task_prompt", default="move the arm to the left", help="Task description for the policy")
-    parser.add_argument("--max_steps", type=int, default=1000, help="Maximum steps per episode")
+    parser.add_argument("--max_steps", type=int, default=3600, help="Maximum steps per episode")
     args = parser.parse_args()
 
     bridge = TrossenOpenPIBridge(
@@ -258,7 +258,12 @@ if __name__ == "__main__":
         max_steps=args.max_steps
     )
 
-    bridge.autonomous_mode(task_prompt=args.task_prompt)
+    try:
+        bridge.autonomous_mode(task_prompt=args.task_prompt)
+    except KeyboardInterrupt:
+        logger.info("Keyboard interrupt detected. Cleaning up...")
+    except Exception as e:
+        logger.error(f"Error in autonomous mode: {e}")
+    finally:
+        bridge.cleanup()
 
-
-    bridge.cleanup()

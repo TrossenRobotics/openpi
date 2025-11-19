@@ -64,6 +64,8 @@ class AssetsConfig:
 class DataConfig:
     # LeRobot repo id. If None, fake data will be created.
     repo_id: str | None = None
+    # Local root directory for the dataset. If None, uses default LeRobot cache.
+    local_root: str | None = None
     # Directory within the assets directory containing the data assets.
     asset_id: str | None = None
     # Contains precomputed normalization stats. If None, normalization will not be performed.
@@ -88,6 +90,10 @@ class DataConfig:
 
     # If true, will use the LeRobot dataset task to define the prompt.
     prompt_from_task: bool = False
+
+    # List of episode indices to load from the dataset. If None, all episodes will be loaded.
+    # Use this to load a subset of the dataset for faster training/testing.
+    episodes: list[int] | None = None
 
     # Only used for RLDS data loader (ie currently only used for DROID).
     rlds_data_dir: str | None = None
@@ -434,7 +440,7 @@ class TrainConfig:
     # How often (in steps) to log training metrics.
     log_interval: int = 100
     # How often (in steps) to save checkpoints.
-    save_interval: int = 1000
+    save_interval: int = 10000
     # If set, any existing checkpoints matching step % keep_period == 0 will not be deleted.
     keep_period: int | None = 5000
 
@@ -599,7 +605,8 @@ _CONFIGS = [
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=False,
             adapt_to_pi=False,
-            repo_id="TrossenRoboticsCommunity/bimanual-widowxai-handover-cube",
+            repo_id="TrossenRoboticsCommunity/trossen_ai_stationary_handover_cube",
+            base_config=DataConfig(local_root="/home/sherrychen/ChefResearch/sandi/datasets/TrossenRoboticsCommunity/trossen_ai_stationary_handover_cube"),
             assets=AssetsConfig(
                 assets_dir="gs://openpi-assets/checkpoints/pi0_base/assets",
                 asset_id="trossen",
@@ -613,6 +620,7 @@ _CONFIGS = [
                                 "cam_high": "observation.images.top",
                                 "cam_left_wrist": "observation.images.left",
                                 "cam_right_wrist": "observation.images.right",
+                                "cam_low": "observation.images.bottom",
                             },
                             "state": "observation.state",
                             "actions": "action",
@@ -623,7 +631,315 @@ _CONFIGS = [
         ),
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
         num_train_steps=20_000,
-        batch_size=2,
+        batch_size=8,
+        freeze_filter=pi0.Pi0Config(
+            paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
+        ).get_freeze_filter(),
+        # Turn off EMA for LoRA finetuning.
+        ema_decay=None,
+    ),
+    TrainConfig(
+        name="2025-11-13_pi0_pick_up_bread",
+        model=pi0.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=False,
+            adapt_to_pi=False,
+            repo_id="sandi/pick-up-bread",
+            base_config=DataConfig(
+                local_root="/home/sherrychen/ChefResearch/sandi/datasets/sandi/pick-up-bread",
+                prompt_from_task=True,
+            ),
+            assets=AssetsConfig(
+                assets_dir="gs://openpi-assets/checkpoints/pi0_base/assets",
+                asset_id="trossen",
+            ),
+            default_prompt="Grab a slice of bread and put it down at the center.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=30_000,
+        batch_size=8,
+        freeze_filter=pi0.Pi0Config(
+            paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
+        ).get_freeze_filter(),
+        # Turn off EMA for LoRA finetuning.
+        ema_decay=None,
+    ),
+    TrainConfig(
+        name="2025-11-13_pi0_lettuce_sandwich",
+        model=pi0.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=False,
+            adapt_to_pi=False,
+            repo_id="sandi/lettuce-sandwich",
+            base_config=DataConfig(
+                local_root="/home/sherrychen/ChefResearch/sandi/datasets/sandi/lettuce-sandwich",
+                prompt_from_task=True,
+            ),
+            assets=AssetsConfig(
+                assets_dir="gs://openpi-assets/checkpoints/pi0_base/assets",
+                asset_id="trossen",
+            ),
+            default_prompt="Assemble a lettuce sandwich using one slice of bread, one piece of lettuce, and another piece of bread.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000, # permanently save checkpoints every 2000 steps
+        batch_size=8,
+        freeze_filter=pi0.Pi0Config(
+            paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
+        ).get_freeze_filter(),
+        # Turn off EMA for LoRA finetuning.
+        ema_decay=None,
+    ),
+    TrainConfig(
+        name="pi0_lettuce_sandwich_2p2",
+        model=pi0.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=False,
+            adapt_to_pi=False,
+            repo_id="sandi/lettuce-sandwich",
+            base_config=DataConfig(
+                local_root="/home/sherrychen/ChefResearch/sandi/datasets/sandi/lettuce-sandwich",
+                prompt_from_task=True,
+                episodes=[
+                    26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 51, 55, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
+                    79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104,
+                    105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126,
+                    127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148,
+                    149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168,
+                ]
+            ),
+            assets=AssetsConfig(
+                assets_dir="gs://openpi-assets/checkpoints/pi0_base/assets",
+                asset_id="trossen",
+            ),
+            default_prompt="Assemble a lettuce sandwich using one slice of bread, one piece of lettuce, and another piece of bread.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        freeze_filter=pi0.Pi0Config(
+            paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
+        ).get_freeze_filter(),
+        # Turn off EMA for LoRA finetuning.
+        ema_decay=None,
+    ),
+    TrainConfig(
+        name="pi0_lettuce_sandwich_2p3",
+        model=pi0.Pi0Config(),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=False,
+            adapt_to_pi=False,
+            repo_id="sandi/lettuce-sandwich",
+            base_config=DataConfig(
+                local_root="/home/somudro/data/sandi/lettuce-sandwich",
+                prompt_from_task=True,
+                episodes=[
+                    26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 51, 55, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
+                    79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104,
+                    105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126,
+                    127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148,
+                    149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168,
+                ]
+            ),
+            assets=AssetsConfig(
+                assets_dir="gs://openpi-assets/checkpoints/pi0_base/assets",
+                asset_id="trossen",
+            ),
+            default_prompt="Assemble a lettuce sandwich using one slice of bread, one piece of lettuce, and another piece of bread.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+    TrainConfig(
+        name="pi0_lettuce_sandwich_3p1",
+        model=pi0.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/lettuce-sandwich",
+            base_config=DataConfig(
+                local_root="/home/sherrychen/ChefResearch/sandi/datasets/sandi/lettuce-sandwich",
+                prompt_from_task=True,
+                episodes=[
+                    26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 51, 55, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
+                    79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104,
+                    105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126,
+                    127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148,
+                    149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168,
+                ]
+            ),
+            default_prompt="Assemble a lettuce sandwich using one slice of bread, one piece of lettuce, and another piece of bread.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        freeze_filter=pi0.Pi0Config(
+            paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
+        ).get_freeze_filter(),
+        # Turn off EMA for LoRA finetuning.
+        ema_decay=None,
+    ),
+    TrainConfig(
+        name="pi0_lettuce_sandwich_3p2",
+        model=pi0.Pi0Config(),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/lettuce-sandwich",
+            base_config=DataConfig(
+                local_root="/home/sherrychen/ChefResearch/sandi/datasets/sandi/lettuce-sandwich",
+                prompt_from_task=True,
+                episodes=[
+                    26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 51, 55, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
+                    79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104,
+                    105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126,
+                    127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148,
+                    149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168,
+                ]
+            ),
+            default_prompt="Assemble a lettuce sandwich using one slice of bread, one piece of lettuce, and another piece of bread.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+    TrainConfig(
+        name="pi0_lettuce_sandwich_skills_v1",
+        model=pi0.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/lettuce-sandwich-skills",
+            base_config=DataConfig(
+                local_root="/home/sherrychen/ChefResearch/sandi/datasets/sandi/lettuce-sandwich-skills",
+                prompt_from_task=True
+            ),
+            default_prompt="",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
         freeze_filter=pi0.Pi0Config(
             paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
         ).get_freeze_filter(),
