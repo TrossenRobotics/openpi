@@ -17,25 +17,20 @@ Usage:
 """
 
 import argparse
+from collections import defaultdict
 import logging
 import time
-import sys
-import os
+
+import cv2
+from lerobot.cameras.realsense.configuration_realsense import RealSenseCameraConfig
+from lerobot.robots import make_robot_from_config
+from lerobot_robot_trossen.config_bi_widowxai_follower import BiWidowXAIFollowerRobotConfig
 import numpy as np
 from openpi_client import websocket_client_policy
-import cv2
-from collections import defaultdict
 from scipy.interpolate import PchipInterpolator
 
-from lerobot.cameras.realsense.configuration_realsense import RealSenseCameraConfig
-from lerobot.robots import (  # noqa: F401
-    make_robot_from_config,
-)
-from lerobot_robot_trossen.config_bi_widowxai_follower import BiWidowXAIFollowerRobotConfig
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
-
 
 
 class TrossenOpenPIBridge:
@@ -47,7 +42,7 @@ class TrossenOpenPIBridge:
         policy_server_port: int = 8000,
         control_frequency: int = 30,
         test_mode: str = "autonomous",  # "autonomous" or "test"
-        max_steps: int = 1000
+        max_steps: int = 1000,
     ):
         self.control_frequency = control_frequency
         self.max_steps = max_steps
@@ -56,8 +51,7 @@ class TrossenOpenPIBridge:
 
         logger.info(f"Connecting to policy server at {policy_server_host}:{policy_server_port}")
         self.policy_client = websocket_client_policy.WebsocketClientPolicy(
-            host=policy_server_host,
-            port=policy_server_port
+            host=policy_server_host, port=policy_server_port
         )
 
         robot_config = BiWidowXAIFollowerRobotConfig(
@@ -68,29 +62,27 @@ class TrossenOpenPIBridge:
             loop_rate=30,
             cameras={
                 "cam_high": RealSenseCameraConfig(
-                    serial_number_or_name="218622270304",
-                    width=640, height=480, fps=30, use_depth=False
+                    serial_number_or_name="218622270304", width=640, height=480, fps=30, use_depth=False
                 ),
                 "cam_low": RealSenseCameraConfig(
-                    serial_number_or_name="130322272628",
-                    width=640, height=480, fps=30, use_depth=False
+                    serial_number_or_name="130322272628", width=640, height=480, fps=30, use_depth=False
                 ),
                 "cam_right_wrist": RealSenseCameraConfig(
-                    serial_number_or_name="128422271347",
-                    width=640, height=480, fps=30, use_depth=False
+                    serial_number_or_name="128422271347", width=640, height=480, fps=30, use_depth=False
                 ),
                 "cam_left_wrist": RealSenseCameraConfig(
-                    serial_number_or_name="218622274938",
-                    width=640, height=480, fps=30, use_depth=False
+                    serial_number_or_name="218622274938", width=640, height=480, fps=30, use_depth=False
                 ),
-            }
+            },
         )
         self.robot = make_robot_from_config(robot_config)
         self.robot.connect()
 
         self.current_action_chunk = None
         self.action_chunk_idx = 0
-        self.action_chunk_size = 50  # Number of actions per chunk from the policy (Defined by the policy server in this case 50)
+        self.action_chunk_size = (
+            50  # Number of actions per chunk from the policy (Defined by the policy server in this case 50)
+        )
         self.episode_step = 0
         self.is_running = False
         self.rate_of_inference = 50  # Number of control steps per policy inference (matches README and Pi-0 paper)
@@ -99,7 +91,9 @@ class TrossenOpenPIBridge:
 
         # FIFO Buffer for actions
         self.action_buffer = defaultdict(list)
-        self.action_buffer_size = self.max_steps + self.action_chunk_size  # Buffer size to hold actions for the entire episode
+        self.action_buffer_size = (
+            self.max_steps + self.action_chunk_size
+        )  # Buffer size to hold actions for the entire episode
 
         self.action_dim = len(self.robot._joint_ft)  # 7 joints per arm * 2 arms
 
@@ -110,7 +104,7 @@ class TrossenOpenPIBridge:
         if self.test_mode == "test":
             logger.info(f"TEST MODE: Would execute action: {full_action}")
             return
-        elif self.test_mode == "autonomous":
+        if self.test_mode == "autonomous":
             joint_features = list(self.robot._joint_ft.keys())
             action_dict = {k: full_action[i] for i, k in enumerate(joint_features)}
             self.robot.send_action(action_dict)
@@ -124,7 +118,7 @@ class TrossenOpenPIBridge:
         We use PCHIP interpolation for smooth trajectory generation and give it enough time to reach the position to prevent
         jumps and triggering safety stops (velocity limits)."""
 
-        joint_pos_keys = [k for k in self.robot.get_observation().keys() if k.endswith('.pos')]
+        joint_pos_keys = [k for k in self.robot.get_observation().keys() if k.endswith(".pos")]
         current_pose = np.array([self.robot.get_observation()[k] for k in joint_pos_keys])
         # Example stage_pose for bimanual WidowX arms.
         # Each value corresponds to a joint position (in radians) for the 14 joints:
@@ -162,14 +156,14 @@ class TrossenOpenPIBridge:
                 observation_dict = self.robot.get_observation()
 
                 # Extract joint positions from observation
-                joint_pos_keys = [k for k in observation_dict.keys() if k.endswith('.pos')]
+                joint_pos_keys = [k for k in observation_dict.keys() if k.endswith(".pos")]
                 joint_positions = np.array([observation_dict[k] for k in joint_pos_keys])
 
                 # Transform and resize images from all cameras
                 cameras = list(self.robot._cameras_ft.keys())
                 for cam in cameras:
                     image_hwc = observation_dict[cam]
-                    #convert BGR to RGB
+                    # convert BGR to RGB
                     image_resized = cv2.resize(image_hwc, (224, 224))
                     image_rgb = cv2.cvtColor(image_resized, cv2.COLOR_BGR2RGB)
                     image_chw = np.transpose(image_rgb, (2, 0, 1))
@@ -179,9 +173,9 @@ class TrossenOpenPIBridge:
                 observation = {
                     "state": joint_positions,
                     "images": {cam: observation_dict[cam] for cam in cameras},
-                    "prompt": task_prompt
+                    "prompt": task_prompt,
                 }
-            
+
                 logger.info(f"Step {self.episode_step}: Requesting new action chunk")
                 response = self.policy_client.infer(observation)
                 self.current_action_chunk = response["actions"]
@@ -215,7 +209,6 @@ class TrossenOpenPIBridge:
             self.action_chunk_idx += 1
             self.episode_step += 1
 
-
             dt_s = time.perf_counter() - start_loop_time
             busy_wait_time = self.dt - dt_s
 
@@ -232,7 +225,6 @@ class TrossenOpenPIBridge:
         weights = np.exp(-self.temporal_ensemble_coefficient * np.arange(num_preds))
         return weights / weights.sum()
 
-
     def autonomous_mode(self, task_prompt: str = "look down"):
         """Run in autonomous mode where the arm executes policy predictions."""
         logger.info("Starting autonomous mode")
@@ -243,13 +235,18 @@ class TrossenOpenPIBridge:
         logger.info("Cleaning up...")
         self.robot.disconnect()
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Trossen AI Stationary Kit <-> OpenPI Policy Server Bridge")
     parser.add_argument("--policy_host", default="localhost", help="Policy server host")
     parser.add_argument("--policy_port", type=int, default=8000, help="Policy server port")
     parser.add_argument("--control_freq", type=int, default=30, help="Control frequency in Hz")
-    parser.add_argument("--mode", choices=["autonomous", "test"],  default="autonomous",
-                        help="Operation mode: autonomous (execute) or test (no movement)")
+    parser.add_argument(
+        "--mode",
+        choices=["autonomous", "test"],
+        default="autonomous",
+        help="Operation mode: autonomous (execute) or test (no movement)",
+    )
     parser.add_argument("--task_prompt", default="move the arm to the left", help="Task description for the policy")
     parser.add_argument("--max_steps", type=int, default=1000, help="Maximum steps per episode")
     args = parser.parse_args()
@@ -259,10 +256,9 @@ if __name__ == "__main__":
         policy_server_port=args.policy_port,
         control_frequency=args.control_freq,
         test_mode=args.mode,
-        max_steps=args.max_steps
+        max_steps=args.max_steps,
     )
 
     bridge.autonomous_mode(task_prompt=args.task_prompt)
-
 
     bridge.cleanup()
