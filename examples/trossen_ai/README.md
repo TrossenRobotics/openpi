@@ -65,10 +65,12 @@ Run this command from the project root. This is for dependency management. We ha
 cd openpi
 ```
 
+Example:
 
 ```bash
 XLA_PYTHON_CLIENT_MEM_FRACTION=0.9 uv run scripts/train.py pi05_trossen_organize_tools --exp-name=pi05_trossen_organize_tools --overwrite
 ```
+
 ## Custom Training Configuration
 
 To add a custom training configuration, edit the `openpi/src/training/config.py` file. You can define your own `TrainConfig` with specific model parameters, dataset sources, prompts, and training options. After updating the configuration, reference your new config name in the training command:
