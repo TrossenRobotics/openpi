@@ -930,7 +930,7 @@ intelrealsense = [
 [[package]]
 name = "lerobot-robot-trossen"
 version = "0.1.0"
-source = { git = "https://github.com/TrossenRobotics/lerobot_trossen.git?subdirectory=packages%2Flerobot_robot_trossen&branch=main#d97590da450ea0f0ea0b4f9de4117edcf072e3f3" }
+source = { git = "https://github.com/TrossenRobotics/lerobot_trossen.git?subdirectory=packages%2Flerobot_robot_trossen&rev=810e60a3d973fa9b23b16db68613c0d4ee03b753#810e60a3d973fa9b23b16db68613c0d4ee03b753" }
 dependencies = [
     { name = "lerobot", extra = ["intelrealsense"] },
     { name = "trossen-arm" },
@@ -939,7 +939,7 @@ dependencies = [
 [[package]]
 name = "lerobot-teleoperator-trossen"
 version = "0.1.0"
-source = { git = "https://github.com/TrossenRobotics/lerobot_trossen.git?subdirectory=packages%2Flerobot_teleoperator_trossen&branch=main#d97590da450ea0f0ea0b4f9de4117edcf072e3f3" }
+source = { git = "https://github.com/TrossenRobotics/lerobot_trossen.git?subdirectory=packages%2Flerobot_teleoperator_trossen&rev=810e60a3d973fa9b23b16db68613c0d4ee03b753#810e60a3d973fa9b23b16db68613c0d4ee03b753" }
 dependencies = [
     { name = "lerobot", extra = ["intelrealsense"] },
     { name = "trossen-arm" },
@@ -948,10 +948,11 @@ dependencies = [
 [[package]]
 name = "lerobot-trossen"
 version = "0.1.0"
-source = { git = "https://github.com/TrossenRobotics/lerobot_trossen.git?branch=main#d97590da450ea0f0ea0b4f9de4117edcf072e3f3" }
+source = { git = "https://github.com/TrossenRobotics/lerobot_trossen.git?rev=810e60a3d973fa9b23b16db68613c0d4ee03b753#810e60a3d973fa9b23b16db68613c0d4ee03b753" }
 dependencies = [
     { name = "lerobot-robot-trossen" },
     { name = "lerobot-teleoperator-trossen" },
+    { name = "trossen-slate" },
 ]
 
 [[package]]
@@ -2662,12 +2663,23 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "lerobot-trossen", git = "https://github.com/TrossenRobotics/lerobot_trossen.git?branch=main" },
+    { name = "lerobot-trossen", git = "https://github.com/TrossenRobotics/lerobot_trossen.git?rev=810e60a3d973fa9b23b16db68613c0d4ee03b753" },
     { name = "numpy", specifier = ">=1.22.4,<2.0.0" },
     { name = "numpydantic", specifier = ">=1.6.6" },
     { name = "opencv-python", specifier = ">=4.10.0.84" },
     { name = "openpi-client", directory = "../../packages/openpi-client" },
     { name = "scipy", specifier = ">=1.10.1" },
+]
+
+[[package]]
+name = "trossen-slate"
+version = "0.0.3"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f2/ae/9a81179f7ec2c7027183c2bd087e627a57bb2fd23caec57d71dd6cd7c136/trossen_slate-0.0.3-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0673c7dc51e17ab3262462f22aee465c3e9d6230963dee8604fd0e70004e7a34", size = 519978, upload-time = "2025-02-20T00:38:40.924Z" },
+    { url = "https://files.pythonhosted.org/packages/6c/25/30a23574058c4d3607cc275297cb986b0c9fa6c299260fdf0c5002f2ebf6/trossen_slate-0.0.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7787b56bd247f886beec4a94392a7d99b69b26f59768318793ad46d36e85f753", size = 527143, upload-time = "2025-02-20T00:38:42.164Z" },
+    { url = "https://files.pythonhosted.org/packages/25/98/179b2a75c01a27d416fe149c78d4bfd2160af7c98f1353f07eeb349467f8/trossen_slate-0.0.3-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f8b02c5f2a03fe789f7fb54a74478d5605b4a4a0dfdb855c84ec6f6ffaff5d3c", size = 517733, upload-time = "2025-02-20T00:38:43.352Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/75/e078e860e5561dd11daaaa5a22604f077aa809d8909fc47445037e0e97cc/trossen_slate-0.0.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:403219999d9dacc5719f2ac133c5c61aa27f4f81e7477f8522105060c9a514bf", size = 525385, upload-time = "2025-02-20T00:38:45.369Z" },
 ]
 
 [[package]]
