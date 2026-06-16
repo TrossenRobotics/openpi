@@ -2634,18 +2634,21 @@ wheels = [
 
 [[package]]
 name = "trossen-arm"
-version = "1.9.0"
+version = "1.10.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/be/64/c327b6d8d1e9ff3131877ce16fa64d5d48570019745b4c874e42b2d09842/trossen_arm-1.9.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:845c0da526b397e5839684c8aafce048976a5eb9d2a699093adc3b64606c3af5", size = 779065, upload-time = "2025-09-10T21:57:02.848Z" },
-    { url = "https://files.pythonhosted.org/packages/7d/3e/e0115b3518df5b0a65d515fab496b335f4c80db94f25b8e333c93d98f37c/trossen_arm-1.9.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:5a4d4a412b219b1770e2536b10ebf78bd49d0af351f5e7f37c43939a4584934f", size = 1114937, upload-time = "2025-09-10T21:57:04.389Z" },
-    { url = "https://files.pythonhosted.org/packages/28/de/15b9f1cf588a0d050f0b08c90a73aac4bd5028b9890f6716f159fa04c7a2/trossen_arm-1.9.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:07c70a5efc085453e4c007f01b59c300ed72cc7a78c4459227b816190127a210", size = 1222221, upload-time = "2025-09-10T21:57:05.473Z" },
-    { url = "https://files.pythonhosted.org/packages/7a/53/31154daca8c4d7481e8638c6c2984da4f483967f0de81c2c2b3977ed505c/trossen_arm-1.9.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:f6ce500a48d29f372764718526771e857a92029658dc3bcd3b311683d49a44d9", size = 750207, upload-time = "2025-09-10T21:57:07.115Z" },
-    { url = "https://files.pythonhosted.org/packages/0a/2e/913a9888e30f42ca197dcfce74eb611b36cf07d89591c1e35b96dd5f7dbd/trossen_arm-1.9.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e9d0fbaadba04cb2dc6676667f45a9c9c27808f70c6ebaaa1a866132d00186cc", size = 1114970, upload-time = "2025-09-10T21:57:08.583Z" },
-    { url = "https://files.pythonhosted.org/packages/62/aa/4c4aee012dc10825eb41f6b5bea522cf67f86b34f39a40209f2333999de9/trossen_arm-1.9.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:685ad5e769ca0030b5adec48d12c3c4d3bf0590cd011aab9972b1ec8f3daeb9f", size = 1220924, upload-time = "2025-09-10T21:57:09.654Z" },
+    { url = "https://files.pythonhosted.org/packages/0a/32/13307c7eef88cc656a00d41ea1925b749e7762fac6da7252ea7938c1b7d2/trossen_arm-1.10.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:76dbfae7841fad136e747be3921c2101801d25ac2f4ca176eec3027a9b1a5e74", size = 729263, upload-time = "2026-05-05T21:13:26.789Z" },
+    { url = "https://files.pythonhosted.org/packages/6c/a4/5e0f49b18d2533aee4536666d4b0117c9aeb5d3230f35b233e3c106a2b8a/trossen_arm-1.10.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e145bd36ffb53cdf1c6e6de4d4d2e8e5302ea599db0d716e75f97f61925631b7", size = 1026542, upload-time = "2026-05-05T21:13:28.287Z" },
+    { url = "https://files.pythonhosted.org/packages/7a/bb/e0f2c80a1018f507b4dd252603d62196acdc558104cb3a7349c0cb35e72c/trossen_arm-1.10.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2ebd6775ca42dc75ebd718ea080450b335daedc2eedbd6223cbdfe47dbe35cb1", size = 1134241, upload-time = "2026-05-05T21:13:29.604Z" },
+    { url = "https://files.pythonhosted.org/packages/bc/35/4b9e702dbe5a844171e76d9e20e57f7d2ebce539dc25866a7dc665e24277/trossen_arm-1.10.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:8c7653ebeb8a0240ba0f6de99cfb63ef470d8d2cff13844f9a994e48d4c68095", size = 698112, upload-time = "2026-05-05T21:13:31.316Z" },
+    { url = "https://files.pythonhosted.org/packages/55/78/54758216c0b3fea040edabc452facf7e8363752e113e97e58bbc817b76f0/trossen_arm-1.10.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1ecf68daf9c56829c6b8b0b8ea08b5d9ef8364424e847b32c321b31395d9fbb3", size = 1027422, upload-time = "2026-05-05T21:13:32.72Z" },
+    { url = "https://files.pythonhosted.org/packages/cb/e7/d6b208b9f48d4549ca39f992a6ef8ea9175fa675ed1ba9a61dcfc3cb6782/trossen_arm-1.10.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:40c595fd535012f50e1e802cd23cde3daa4ad2c65a15907868cbe5b6969a3e51", size = 1137443, upload-time = "2026-05-05T21:13:34.122Z" },
+    { url = "https://files.pythonhosted.org/packages/10/37/11a89f928de15bc79e8151579b7aff1347842175cd02c9cf26c76a3a6bbb/trossen_arm-1.10.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:d873626e07d2b734b4fa986911e19d7551379ce0b64167205abbbddb2d4de116", size = 698155, upload-time = "2026-05-05T21:13:35.287Z" },
+    { url = "https://files.pythonhosted.org/packages/68/39/ee18ee48aa32878da42244365dbdb91904dc082422a947686ee8d0953e40/trossen_arm-1.10.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:396a01a85313b49c4456a7425528d46a4cc58520709c18312228a7c3f051cf19", size = 1027412, upload-time = "2026-05-05T21:13:36.261Z" },
+    { url = "https://files.pythonhosted.org/packages/ed/fe/1f45d3f05b88b394df6974e660ae9479956d99e41f10d9859a1f675f66eb/trossen_arm-1.10.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8b4218b51eece5bfadaa54885bf182dc94325f7a1f8071f225a8e80fe2bbd31f", size = 1137637, upload-time = "2026-05-05T21:13:37.492Z" },
 ]
 
 [[package]]
