@@ -95,7 +95,7 @@ class TrossenOpenPIBridge:
             self.max_steps + self.action_chunk_size
         )  # Buffer size to hold actions for the entire episode
 
-        self.action_dim = len(self.robot._joint_ft)  # 7 joints per arm * 2 arms
+        self.action_dim = len(self.robot.action_features)  # action_features = 7 dims per arm (6 joints + gripper) * 2 arms = 14
 
     def execute_action(self, action: np.ndarray):
         """Execute action on the arm."""
@@ -105,7 +105,7 @@ class TrossenOpenPIBridge:
             logger.info(f"TEST MODE: Would execute action: {full_action}")
             return
         if self.test_mode == "autonomous":
-            joint_features = list(self.robot._joint_ft.keys())
+            joint_features = list(self.robot.action_features.keys())
             action_dict = {k: full_action[i] for i, k in enumerate(joint_features)}
             self.robot.send_action(action_dict)
         else:
