@@ -190,11 +190,12 @@ The client will connect to the policy server and perform the specified task usin
 You can change the cameras and arm ip address in the script `examples/trossen_ai/main.py` by editing
 
 ```python
-bi_widowx_ai_config = BiWidowXAIFollowerConfig(
+robot_config = BiWidowXAIFollowerRobotConfig(
+            id="bimanual_follower",
             left_arm_ip_address="192.168.1.5",
             right_arm_ip_address="192.168.1.4",
             min_time_to_move_multiplier=4.0,
-            id="bimanual_follower",
+            loop_rate=30,
             cameras={
                 "cam_high": RealSenseCameraConfig(
                     serial_number_or_name="218622270304",
